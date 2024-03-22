@@ -332,31 +332,27 @@ class App(customtkinter.CTk):
             int_pred = int(entry_widget_pred)
             player_pred_side.configure(text=int_pred)
         except ValueError:
-            print("Der String ist keine gültige Ganzzahl.")
+            print("The string is not a valid integer.")
+
         try:
             int_pred = int(entry_widget_pred)
             int_act = int(entry_widget_act)
         except ValueError:
-            print("Der String ist keine gültige Ganzzahl.")
+            print("The string is not a valid integer..")
             return None
+
         try:
             int_label = int(label_point_before.cget("text"))
         except:
             int_label = 0
-        if (int_pred or int_act) is None:
-            print("None")
-            pass
-        elif isinstance(int_pred, str) or isinstance(int_act, str):
-            print("String")
-            pass
+
+        dif = abs(int(int_pred) - int(int_act))
+        if dif == 0:
+            new_points = int_label + (int_pred*10) + 20
+            label_point_after.configure(text=new_points)
         else:
-            dif = abs(int(int_pred) - int(int_act))
-            if dif == 0:
-                new_points = int_label + (int_pred*10) + 20
-                label_point_after.configure(text=new_points)
-            else:
-                new_points = int_label - (dif*10)
-                label_point_after.configure(text=new_points)
+            new_points = int_label - (dif*10)
+            label_point_after.configure(text=new_points)
 
     def create_round_widgets_for_first_player(self, frame, round_number, prev_points_label, player_pred_side):
         round_label = customtkinter.CTkLabel(frame, text=f"{round_number} Round:", anchor="w")
