@@ -1,9 +1,43 @@
-# Wizard_Dashboard
-Dashboard for the card game Wizard by Ken Fisher. You can choose between 3 to 6 players.
-Customtkinter was used for the GUI. (https://github.com/TomSchimansky/CustomTkinter)
+# 🧙 Wizard Score Tracker
+
+An interactive score tracker for the card game **Wizard** by Ken Fisher.  
+Supports 3 to 6 players with a modern, mystical web interface.
+
+🌐 **Live:** [wizard-dashboard.vercel.app](https://wizard-dashboard.vercel.app)
+
+---
+
+## ✨ Features
+
+- 3 to 6 players with custom names
+- Automatic point calculation per round
+- Live scoreboard with animated totals
+- Score progression chart
+- Hit rate tracking per player
+- Undo function
+- Fully responsive
+
+---
+
+## 🛠️ Tech Stack
+
+- [React](https://react.dev/) + [Vite](https://vitejs.dev/)
+- Deployed via [Vercel](https://vercel.com/)
+
+---
+
+## 📸 Screenshots
 
 GUI 3 players:
-![alt text](https://github.com/EricWeinz/Wizard_Dashboard/blob/main/Dashboard_3_players.png?raw=true)
+![3 players](https://github.com/EricWeinz/Wizard_Dashboard/blob/main/img1.png?raw=true)
 
 GUI 6 players:
-![alt text](https://github.com/EricWeinz/Wizard_Dashboard/blob/main/Dashboard_6_players.png?raw=true)
+![6 players](https://github.com/EricWeinz/Wizard_Dashboard/blob/main/img2.png?raw=true)
+
+---
+
+## 🚀 Local Development
+```bash
+npm install
+npm run dev
+```
