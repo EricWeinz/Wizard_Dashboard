@@ -14,7 +14,7 @@ const PLAYER_COLORS = [
 const ROUNDS_MAP = { 3: 20, 4: 15, 5: 12, 6: 10 };
 const RUNES = ["ᚠ","ᚢ","ᚦ","ᚨ","ᚱ","ᚲ","ᚷ","ᚹ","ᚺ","ᚾ","ᛁ","ᛃ","ᛇ","ᛈ","ᛉ","ᛊ","ᛏ","ᛒ","ᛖ","ᛗ","ᛚ","ᛜ","ᛞ","ᛟ"];
 const MAGIC_SYMBOLS = ["✦","✧","⟡","◈","◇","⬡","✶","⊹","⋆","∗"];
-const ACCESS_KEY = "wizard2026";
+const ACCESS_KEY = "wizard";
 
 function calcPoints(pred, act) {
   if (pred === "" || act === "") return null;
