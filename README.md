@@ -23,7 +23,7 @@ or **online, with everyone following the score live on their own phone**.
 - Hit rate tracking per player
 - Undo function
 - Fully responsive
-- 🎨 Eight switchable designs – Arcane, Fire, Frost, Druid Grove, Royal Court, Neon Magic, a light Parchment
+- 🎨 Eight switchable designs named after their colour – Violett, Orange, Türkis, Grün, Gold, Pink, a light Beige
   design in the style of the official rule book and **Dynamo** in black and yellow (like the Kniffel Dashboard):
   Dynamo Dresden crest in the headers and as favicon, stadium floodlights, a sporty font and „Abpfiff!“ on the
   winner screen; pick one on the start page or via 🎨 during the game

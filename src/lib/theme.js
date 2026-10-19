@@ -10,7 +10,7 @@ import { DEFAULT_PLAYER_COLORS, makePlayerColors, setPlayerColors, RUNES, MAGIC_
    einfach unten in THEMES ergänzen.
    ════════════════════════════════════════════ */
 
-/** Standardwerte = das ursprüngliche Wizard-Design („Arkan“). */
+/** Standardwerte = das ursprüngliche Wizard-Design („Violett“). */
 const BASE = {
   "font-title": "'Cinzel Decorative', cursive", // große Titel („Wizard“, „Spielende!“)
   "font-label": "'Cinzel', serif",              // Überschriften, Beschriftungen, Hauptknöpfe
@@ -61,17 +61,17 @@ const PALETTES = {
   // Schwarz-Gelb: Trikot-Gelb, Weiß, Rasengrün, Himmelblau, Orange, Violett – bewusst ohne Rot,
   // denn Rot steht in der Tabelle für Minuspunkte (das Wappen-Rot steckt in Akzenten und Konfetti)
   dynamo: makePlayerColors(["#fcd010", "#f5f5f0", "#4ade80", "#60a5fa", "#fb923c", "#c084fc"]),
-  // Helles Pergament: kräftige „Tinten“-Töne statt Pastell
+  // Helles Beige (Pergament-Stil): kräftige „Tinten“-Töne statt Pastell
   pergament: makePlayerColors(["#7e22ce", "#1d4ed8", "#c2410c", "#047857", "#be123c", "#a16207"], 1.6),
 };
 
 export const THEMES = [
   {
-    id: "arkan", label: "Arkan", icon: "🔮", swatch: ["#050311", "#c084fc", "#60a5fa"],
+    id: "arkan", label: "Violett", icon: "🔮", swatch: ["#050311", "#c084fc", "#60a5fa"],
     tokens: {},
   },
   {
-    id: "feuer", label: "Feuerzauber", icon: "🔥", swatch: ["#0c0402", "#fb923c", "#facc15"],
+    id: "feuer", label: "Orange", icon: "🔥", swatch: ["#0c0402", "#fb923c", "#facc15"],
     tokens: {
       "accent": "251 146 60", "accent-mid": "248 113 113", "accent-2": "250 204 21",
       "btn-a": "194 65 12", "btn-b": "220 38 38", "btn-c": "234 88 12",
@@ -83,7 +83,7 @@ export const THEMES = [
     },
   },
   {
-    id: "eis", label: "Eiszauber", icon: "❄️", swatch: ["#020810", "#67e8f9", "#e0f2fe"],
+    id: "eis", label: "Türkis", icon: "❄️", swatch: ["#020810", "#67e8f9", "#e0f2fe"],
     tokens: {
       "accent": "103 232 249", "accent-mid": "125 211 252", "accent-2": "224 242 254",
       "btn-a": "8 145 178", "btn-b": "2 132 199", "btn-c": "14 165 233",
@@ -95,7 +95,7 @@ export const THEMES = [
     },
   },
   {
-    id: "druide", label: "Druidenhain", icon: "🌿", swatch: ["#020a05", "#4ade80", "#facc15"],
+    id: "druide", label: "Grün", icon: "🌿", swatch: ["#020a05", "#4ade80", "#facc15"],
     tokens: {
       "accent": "74 222 128", "accent-mid": "163 230 53", "accent-2": "250 204 21",
       "btn-a": "21 128 61", "btn-b": "22 101 52", "btn-c": "34 197 94",
@@ -107,7 +107,7 @@ export const THEMES = [
     },
   },
   {
-    id: "gold", label: "Königshof", icon: "👑", swatch: ["#050504", "#eab308", "#fde047"],
+    id: "gold", label: "Gold", icon: "👑", swatch: ["#050504", "#eab308", "#fde047"],
     tokens: {
       "accent": "234 179 8", "accent-mid": "245 158 11", "accent-2": "253 224 71",
       "btn-a": "161 98 7", "btn-b": "180 83 9", "btn-c": "202 138 4",
@@ -119,7 +119,7 @@ export const THEMES = [
     },
   },
   {
-    id: "neon", label: "Neon-Magie", icon: "🌌", swatch: ["#06020e", "#f472b6", "#22d3ee"],
+    id: "neon", label: "Pink", icon: "🌌", swatch: ["#06020e", "#f472b6", "#22d3ee"],
     tokens: {
       "accent": "244 114 182", "accent-mid": "192 132 252", "accent-2": "34 211 238",
       "btn-a": "219 39 119", "btn-b": "147 51 234", "btn-c": "236 72 153",
@@ -132,7 +132,7 @@ export const THEMES = [
   },
   {
     // Helles Design im Stil der offiziellen Anleitung und des „Blocks der Wahrheit“
-    id: "pergament", label: "Pergament", icon: "📜", swatch: ["#ecdfbe", "#991b1b", "#1e40af"], light: true,
+    id: "pergament", label: "Beige", icon: "📜", swatch: ["#ecdfbe", "#991b1b", "#1e40af"], light: true,
     tokens: {
       "ink": "62 39 20",
       "accent": "153 27 27", "accent-mid": "124 45 18", "accent-2": "30 64 175",
