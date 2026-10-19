@@ -1,4 +1,4 @@
-import { ROUNDS_MAP, MIN_PLAYERS, MAX_PLAYERS, cardsForRound } from "../lib/wizard.js";
+import { ROUNDS_MAP, MIN_PLAYERS, MAX_PLAYERS, cardsForRound, bidStatus, forbiddenBid, checkBid } from "../lib/wizard.js";
 
 /**
  * Reine Spiellogik des Online-Modus – ohne Firebase-Import, damit sie mit
@@ -15,7 +15,8 @@ import { ROUNDS_MAP, MIN_PLAYERS, MAX_PLAYERS, cardsForRound } from "../lib/wiza
  * Datenmodell unter wizard/sessions/{CODE}:
  *   state: 'lobby' | 'playing' | 'finished'
  *   hostId, createdAt (Basis der 24-h-Frist), startedAt?, finishedAt?, totalRounds?,
- *   playerOrder?: string[], dealerStart?: number (Index des ersten Gebers),
+ *   playerOrder?: string[], startPlayerId? (wer in Runde 1 zuerst ansagt, Lobby-Wahl),
+ *   dealerStart?: number (Index des ersten Gebers = Platz vor dem Beginnenden),
  *   lastEdit?: { by, target, ri, field, from, to?, at }  (letzte Korrektur eines Werts)
  *   players/{id}: { name, joinedAt, online?, guest?, rounds?: { r1: { pred?, act? }, … } }
  * Runden-Schlüssel sind bewusst `r1`, `r2`, … statt 0, 1, …: Objekte mit
@@ -126,6 +127,32 @@ function reconcileOrder(session, desired) {
   return [...present, ...missing];
 }
 
+/**
+ * Ansagen einer Runde nach den Regeln „der Reihe nach“ und „Summe ≠ Kartenzahl“:
+ * wer jetzt dran ist (nextId), Summe, Verstoß, verbotener Wert je Spieler und
+ * eine Prüfung für einen geplanten Eintrag (gleiche Logik wie im lokalen Modus).
+ */
+export function roundBids(session, roundIndex) {
+  const ids = session?.playerOrder ?? [];
+  const cards = cardsForRound(roundIndex, session?.totalRounds ?? 0);
+  const preds = ids.map((id) => getCell(session, id, roundIndex, "pred"));
+  const order = biddingOrder(session, roundIndex).map((id) => ids.indexOf(id));
+  const status = bidStatus(preds, order, cards);
+  return {
+    ...status,
+    cards,
+    order: order.map((i) => ids[i]),
+    nextId: status.next === null ? null : ids[status.next],
+    firstId: ids[status.first],
+    lastId: ids[status.last],
+    forbiddenFor: (id) => forbiddenBid(preds, ids.indexOf(id), cards),
+    check: (id, value) => {
+      const problem = checkBid(preds, order, cards, ids.indexOf(id), value);
+      return problem?.reason === "order" ? { ...problem, blockerId: ids[problem.blocker] } : problem;
+    },
+  };
+}
+
 /** Sitzordnung: im Spiel die festgelegte, in der Lobby die gewünschte + Neue hinten. */
 export function effectivePlayerOrder(session) {
   if (session?.state && session.state !== "lobby") {
@@ -234,6 +261,21 @@ export function applyAddGuest(session, byId, guestId, guestName, now) {
   return ok(session);
 }
 
+/** Spielleitung legt fest, wer in Runde 1 zuerst ansagt (danach geht es reihum weiter). */
+export function applySetStartPlayer(session, byId, targetId) {
+  if (session.hostId !== byId) return fail("Nur die Spielleitung legt fest, wer beginnt.");
+  if (session.state !== "lobby") return fail("Wer beginnt, wird vor dem Start festgelegt.");
+  if (!session.players?.[targetId]) return fail("Spieler nicht gefunden.");
+  session.startPlayerId = targetId;
+  return ok(session);
+}
+
+/** Wer beginnt in Runde 1? Gewählt oder – solange nichts gewählt ist – der Erste der Sitzordnung. */
+export function startPlayerOf(session) {
+  const order = effectivePlayerOrder(session);
+  return order.includes(session?.startPlayerId) ? session.startPlayerId : (order[0] ?? null);
+}
+
 export function applyRemoveLobbyPlayer(session, byId, targetId) {
   if (session.hostId !== byId) return fail("Nur die Spielleitung kann Spieler entfernen.");
   if (session.state !== "lobby") return fail("Spieler können nur vor dem Start entfernt werden.");
@@ -256,7 +298,9 @@ export function applyStart(session, byId, now) {
   for (const id of order) delete session.players[id].rounds;
   session.playerOrder = order;
   session.totalRounds = ROUNDS_MAP[order.length];
-  session.dealerStart = 0;
+  // Wer beginnt, sagt in Runde 1 zuerst an; der Platz davor gibt die Karten
+  const startIndex = Math.max(0, order.indexOf(session.startPlayerId));
+  session.dealerStart = (startIndex - 1 + order.length) % order.length;
   session.state = "playing";
   session.startedAt = now;
   session.createdAt = now; // 24-h-Frist ab Spielstart
@@ -286,6 +330,20 @@ function checkCellWrite(session, byId, targetId, roundIndex, field, value, start
     const cards = cardsForRound(roundIndex, total);
     if (!Number.isInteger(value) || value < 0 || value > cards) {
       return `In Runde ${roundIndex + 1} gibt es ${cards} ${cards === 1 ? "Karte" : "Karten"} – erlaubt sind 0 bis ${cards}.`;
+    }
+    const bids = roundBids(session, roundIndex);
+    const name = (id) => session.players?.[id]?.name ?? "?";
+    if (field === "pred") {
+      const problem = bids.check(targetId, value);
+      if (problem?.reason === "order") {
+        return `Noch nicht dran: Es wird der Reihe nach angesagt – zuerst ist ${name(problem.blockerId)} dran.`;
+      }
+      if (problem?.reason === "sum") {
+        return `Nicht erlaubt: Die Ansagen dürfen zusammen nicht genau ${cards} ergeben – ${name(targetId)} darf nicht ${value} ansagen.`;
+      }
+    } else {
+      if (!bids.allIn) return "Stiche erst eintragen, wenn alle angesagt haben.";
+      if (bids.violation) return `Die Ansagen ergeben zusammen genau ${cards} – das ist nicht erlaubt. Bitte zuerst eine Ansage ändern.`;
     }
   }
   return null;

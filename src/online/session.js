@@ -119,6 +119,9 @@ export const addGuest = (code, byId, guestId, name) =>
 export const removeLobbyPlayer = (code, byId, targetId) =>
   mutate(code, (s) => R.applyRemoveLobbyPlayer(s, byId, targetId));
 
+export const setStartPlayer = (code, byId, targetId) =>
+  mutate(code, (s) => R.applySetStartPlayer(s, byId, targetId));
+
 export const startGame = (code, byId) =>
   mutate(code, (s, now) => R.applyStart(s, byId, now));
 
@@ -207,11 +210,15 @@ export function subscribeToSession(code, playerId, onChange, onError) {
         startPresence();
         // Selbstheilung (z. B. ein zweiter Tab desselben Browsers wurde geschlossen
         // und hat beim Trennen `online` entfernt) – gedrosselt gegen Schleifen.
-        if (connected && session.players[playerId].online !== true && Date.now() - lastSelfHeal > 5000) {
+        if (latest === session && connected && session.players[playerId].online !== true && Date.now() - lastSelfHeal > 5000) {
           lastSelfHeal = Date.now();
           markOnline();
         }
       }
+      // startPresence/markOnline können synchron ein neueres Ereignis auslösen (die Transaktion
+      // wird lokal sofort angewendet) – das wurde dann schon weitergereicht. Den älteren Stand
+      // nicht hinterherschicken, sonst sieht sich das Gerät bis zur nächsten Änderung offline.
+      if (latest !== session) return;
       onChange(session);
     },
     (error) => onError?.(error),

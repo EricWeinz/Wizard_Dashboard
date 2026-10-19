@@ -12,7 +12,7 @@ export const screenStyle = {
   animation: "portalIn 0.8s ease-out backwards",
 };
 
-export const textStyle = { fontFamily: "'DM Sans', sans-serif", color: "rgba(255,255,255,0.55)", fontSize: 13, lineHeight: 1.5 };
+export const textStyle = { fontFamily: "'DM Sans', sans-serif", color: "rgb(var(--ink) / 0.55)", fontSize: 13, lineHeight: 1.5 };
 
 /** true, solange die Medienabfrage zutrifft (reagiert auf Größenänderungen). */
 export function useMediaQuery(query) {
@@ -94,16 +94,16 @@ export function Toast({ tone = "error", children, onClose }) {
       // Nur das ✕ fängt Tipps ab – die Knöpfe der Kopfzeile darunter bleiben bedienbar
       pointerEvents: "none", display: "flex", alignItems: "flex-start", gap: 10,
       padding: "12px 14px", borderRadius: 14,
-      background: error ? "rgba(28,8,16,0.97)" : "rgba(18,10,40,0.97)",
-      border: `1px solid ${error ? "rgba(239,68,68,0.45)" : "rgba(192,132,252,0.4)"}`,
+      background: error ? "rgb(var(--s-error) / 0.97)" : "rgb(var(--s-info) / 0.97)",
+      border: `1px solid ${error ? "rgb(var(--danger) / 0.45)" : "rgb(var(--accent) / 0.4)"}`,
       boxShadow: "0 10px 30px rgba(0,0,0,0.5)", animation: "fadeSlideIn 0.3s ease-out",
       fontFamily: "'DM Sans', sans-serif",
     }}>
       <span aria-hidden style={{ fontSize: 16, lineHeight: 1.4 }}>{error ? "⚠️" : "✎"}</span>
-      <p style={{ flex: 1, margin: 0, fontSize: 14, lineHeight: 1.45, color: error ? "#fecaca" : "#e9d5ff" }}>{children}</p>
+      <p style={{ flex: 1, margin: 0, fontSize: 14, lineHeight: 1.45, color: error ? "rgb(var(--danger-text-2))" : "rgb(var(--soft))" }}>{children}</p>
       {onClose && (
         <button onClick={onClose} aria-label="Meldung schließen" style={{
-          pointerEvents: "auto", background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 15,
+          pointerEvents: "auto", background: "none", border: "none", color: "rgb(var(--ink) / 0.6)", fontSize: 15,
           cursor: "pointer", minWidth: 40, minHeight: 40, margin: "-10px -8px -10px 0", lineHeight: 1,
         }}>✕</button>
       )}
@@ -118,13 +118,13 @@ export function OnlineTitle({ subtitle }) {
     <div style={{ textAlign: "center", marginBottom: 28 }}>
       <h1 style={{
         fontSize: "clamp(40px, 9vw, 60px)", fontFamily: "'Cinzel Decorative', cursive", margin: 0, lineHeight: 1.1,
-        background: "linear-gradient(135deg, #c084fc 0%, #818cf8 50%, #60a5fa 100%)",
+        background: "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-mid)) 50%, rgb(var(--accent-2)) 100%)",
         backgroundSize: "200% 200%", animation: "shimmer 4s ease-in-out infinite",
         WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-        filter: "drop-shadow(0 0 20px rgba(192,132,252,0.25))",
+        filter: "drop-shadow(0 0 20px rgb(var(--accent) / 0.25))",
       }}>Wizard</h1>
       <div style={{
-        fontSize: 11, letterSpacing: 5, textTransform: "uppercase", color: "rgba(192,132,252,0.5)",
+        fontSize: 11, letterSpacing: 5, textTransform: "uppercase", color: "rgb(var(--accent) / 0.5)",
         marginTop: 8, fontFamily: "'Cinzel', serif",
       }}>✦ {subtitle} ✦</div>
     </div>
@@ -135,8 +135,8 @@ export function OnlineTitle({ subtitle }) {
 export function Spinner({ label }) {
   return (
     <div role="status" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-      <div aria-hidden style={{ fontSize: 40, color: "rgba(192,132,252,0.6)", animation: "spinRune 3s linear infinite" }}>ᛟ</div>
-      <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: "rgba(192,132,252,0.6)", fontFamily: "'Cinzel', serif", textAlign: "center" }}>{label}</div>
+      <div aria-hidden style={{ fontSize: 40, color: "rgb(var(--accent) / 0.6)", animation: "spinRune 3s linear infinite" }}>ᛟ</div>
+      <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: "rgb(var(--accent) / 0.6)", fontFamily: "'Cinzel', serif", textAlign: "center" }}>{label}</div>
     </div>
   );
 }

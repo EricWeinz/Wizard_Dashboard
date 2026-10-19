@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useOnlineStore } from "./store.js";
 import { MAX_NAME_LENGTH } from "./rules.js";
 import { textStyle, trapTab } from "./ui.jsx";
+import { themeIcon } from "../lib/theme.js";
 
 /**
  * Beitritts-Dialog nach dem Scannen des QR-Codes bzw. Öffnen eines
@@ -39,21 +40,21 @@ export default function JoinPrompt({ code, onClose }) {
   return createPortal(
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center",
-      padding: 16, background: "rgba(5,3,17,0.82)", backdropFilter: "blur(8px)", animation: "fadeIn 0.2s ease-out",
+      padding: 16, background: "rgb(var(--bg) / 0.82)", backdropFilter: "blur(8px)", animation: "fadeIn 0.2s ease-out",
     }}>
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}
         className="magic-card" style={{ maxWidth: 400, padding: "26px 22px", animation: "fadeSlideIn 0.3s ease-out" }}>
         <button onClick={onClose} aria-label="Schließen" style={{
           position: "absolute", top: 8, right: 8, background: "none", border: "none",
-          color: "rgba(255,255,255,0.5)", fontSize: 16, cursor: "pointer", minWidth: 40, minHeight: 40,
+          color: "rgb(var(--ink) / 0.5)", fontSize: 16, cursor: "pointer", minWidth: 40, minHeight: 40,
         }}>✕</button>
         <div style={{ textAlign: "center", marginBottom: 18 }}>
-          <div aria-hidden style={{ fontSize: 40, filter: "drop-shadow(0 0 16px rgba(192,132,252,0.4))" }}>🔮</div>
-          <h2 id={titleId} style={{ margin: "8px 0 0", fontFamily: "'Cinzel', serif", fontSize: 20, color: "#e9d5ff", letterSpacing: 1 }}>
+          <div aria-hidden style={{ fontSize: 40, filter: "drop-shadow(0 0 16px rgb(var(--accent) / 0.4))" }}>{themeIcon()}</div>
+          <h2 id={titleId} style={{ margin: "8px 0 0", fontFamily: "'Cinzel', serif", fontSize: 20, color: "rgb(var(--soft))", letterSpacing: 1 }}>
             Du wurdest eingeladen!
           </h2>
           <p style={{ ...textStyle, marginTop: 6 }}>
-            Sitzung <span style={{ fontFamily: "'Cinzel', serif", fontWeight: 700, letterSpacing: 3, color: "#fff" }}>{code}</span>
+            Sitzung <span style={{ fontFamily: "'Cinzel', serif", fontWeight: 700, letterSpacing: 3, color: "rgb(var(--ink))" }}>{code}</span>
           </p>
         </div>
 

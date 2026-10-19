@@ -6,6 +6,7 @@ import {
   effectivePlayerOrder, isGameComplete, toBoard, lastTouchedRound, trickSumMismatches,
   normalizeCode, randomCode, isSessionExpired, getCell, canEditPlayer, SESSION_TTL_MS,
   applyClaimHost, applyReturnToLobby, dealerIndex, biddingOrder, isHostAway, applyPresenceOff,
+  roundBids, applySetStartPlayer, startPlayerOf,
 } from "../src/online/rules.js";
 import { cardsForRound, ROUNDS_MAP } from "../src/lib/wizard.js";
 
@@ -33,6 +34,15 @@ function lobbyWith(names) {
 
 function startedGame(names = ["Eric", "Gina", "Steven", "Anna"]) {
   return run(applyStart(lobbyWith(names), "host", T0 + 100)).value;
+}
+
+/** Spielleitung lässt alle, die vor `targetId` ansagen, zuerst ansagen (Wert 0) – Ansagen gehen der Reihe nach. */
+function bidBefore(s, ri, targetId) {
+  for (const id of biddingOrder(s, ri)) {
+    if (id === targetId) break;
+    if (getCell(s, id, ri, "pred") === null) s = run(applySetCell(s, "host", id, ri, "pred", 0, T0, s.startedAt)).value;
+  }
+  return s;
 }
 
 /** Alle Geräte-Spieler als verbunden markieren (wie es die Präsenz tut). */
@@ -111,9 +121,12 @@ test("Eintragen: Rechte (eigene, Gäste, Spielleitung alle), Zuschauer nie", () 
   let s = lobbyWith(["Eric", "Gina", "Steven"]);
   s = run(applyAddGuest(s, "host", "g1", "Oma", T0 + 5)).value;
   s = allOnline(run(applyStart(s, "host", T0 + 10)).value);
+  s = bidBefore(s, 0, "p1");
   assert.equal(run(applySetCell(s, "p1", "p1", 0, "pred", 1, T0, s.startedAt)).failure, null);
   assert.match(run(applySetCell(s, "p1", "p2", 0, "pred", 1, T0, s.startedAt)).failure, /eigenen Werte/);
-  assert.equal(run(applySetCell(s, "p1", "g1", 0, "pred", 0, T0, s.startedAt)).failure, null);
+  s = bidBefore(s, 0, "g1"); // Eric 0, Gina 1 (oben, Updater ändern direkt), Steven 0
+  assert.match(run(applySetCell(structuredClone(s), "p1", "g1", 0, "pred", 0, T0, s.startedAt)).failure, /Oma darf nicht 0/);
+  assert.equal(run(applySetCell(s, "p1", "g1", 0, "pred", 1, T0, s.startedAt)).failure, null);
   assert.equal(run(applySetCell(s, "host", "p2", 0, "act", 1, T0, s.startedAt)).failure, null);
   assert.match(run(applySetCell(s, "zuschauer", "p1", 0, "pred", 1, T0, s.startedAt)).failure, /Mitspieler/);
   assert.match(run(applySetCell(s, "g1", "g1", 0, "pred", 1, T0, s.startedAt)).failure, /Mitspieler/);
@@ -122,14 +135,18 @@ test("Eintragen: Rechte (eigene, Gäste, Spielleitung alle), Zuschauer nie", () 
   assert.equal(canEditPlayer(s, "host", "p1"), true);
 });
 
-test("Eintragen: Wertebereich je Runde nach Hausregel, Löschen räumt auf", () => {
-  let s = startedGame(); // 4 Spieler, 15 Runden: 1..8..1 Karten
+test("Eintragen: Wertebereich je Runde nach offizieller Regel (Runde n = n Karten), Löschen räumt auf", () => {
+  let s = startedGame(); // 4 Spieler, 15 Runden: 1 … 15 Karten
   assert.equal(cardsForRound(7, 15), 8);
+  assert.equal(cardsForRound(14, 15), 15, "letzte Runde: alle 60 Karten verteilt");
+  assert.equal(run(applySetCell(bidBefore(structuredClone(s), 14, "host"), "host", "host", 14, "pred", 15, T0, s.startedAt)).failure, null, "15 Stiche in Runde 15 erlaubt");
+  assert.match(run(applySetCell(s, "host", "host", 14, "pred", 16, T0, s.startedAt)).failure, /erlaubt sind 0 bis 15/);
   assert.match(run(applySetCell(s, "host", "host", 0, "pred", 2, T0, s.startedAt)).failure, /erlaubt sind 0 bis 1/);
   assert.match(run(applySetCell(s, "host", "host", 0, "pred", -1, T0, s.startedAt)).failure, /erlaubt/);
   assert.match(run(applySetCell(s, "host", "host", 0, "pred", 1.5, T0, s.startedAt)).failure, /erlaubt/);
   assert.match(run(applySetCell(s, "host", "host", 15, "pred", 0, T0, s.startedAt)).failure, /Ungültige Runde/);
   assert.match(run(applySetCell(s, "host", "host", 0, "foo", 0, T0, s.startedAt)).failure, /Unbekannt/);
+  s = bidBefore(s, 7, "host");
   s = run(applySetCell(s, "host", "host", 7, "pred", 8, T0, s.startedAt)).value;
   assert.equal(getCell(s, "host", 7, "pred"), 8);
   assert.deepEqual(s.players.host.rounds, { r8: { pred: 8 } });
@@ -138,9 +155,9 @@ test("Eintragen: Wertebereich je Runde nach Hausregel, Löschen räumt auf", () 
 });
 
 function fillGame(s, now = T0 + 1000) {
-  for (const id of s.playerOrder) {
-    for (let ri = 0; ri < s.totalRounds; ri++) {
-      s = run(applySetCell(s, "host", id, ri, "pred", 0, now, s.startedAt)).value;
+  for (let ri = 0; ri < s.totalRounds; ri++) {
+    for (const id of biddingOrder(s, ri)) s = run(applySetCell(s, "host", id, ri, "pred", 0, now, s.startedAt)).value;
+    for (const id of s.playerOrder) {
       s = run(applySetCell(s, "host", id, ri, "act", id === s.playerOrder[0] ? cardsForRound(ri, s.totalRounds) : 0, now, s.startedAt)).value;
     }
   }
@@ -172,14 +189,14 @@ test("Verspätete Einträge aus dem vorigen Spiel werden nach einer Revanche ver
   assert.equal(s.createdAt, T0 + 9000);
   assert.equal(lastTouchedRound(s), -1);
   assert.match(run(applySetCell(s, "p1", "p1", 0, "pred", 1, T0, oldStart)).failure, /neues Spiel/);
-  assert.equal(run(applySetCell(s, "p1", "p1", 0, "pred", 1, T0, s.startedAt)).failure, null);
+  assert.equal(run(applySetCell(bidBefore(s, 0, "p1"), "p1", "p1", 0, "pred", 0, T0, s.startedAt)).failure, null);
 });
 
 test("Rückgängig nur, wenn das Feld noch den eigenen Wert hat", () => {
-  let s = startedGame();
+  let s = bidBefore(startedGame(), 2, "p1");
   s = run(applySetCell(s, "p1", "p1", 2, "pred", 2, T0, s.startedAt)).value;
   assert.equal(run(applyRevertCell(s, "p1", "p1", 2, "pred", 2, null, T0, s.startedAt)).failure, null);
-  s = run(applySetCell(s, "host", "p1", 2, "pred", 3, T0, s.startedAt)).value; // Spielleitung korrigiert
+  s = run(applySetCell(s, "host", "p1", 2, "pred", 1, T0, s.startedAt)).value; // Spielleitung korrigiert
   assert.match(run(applyRevertCell(s, "p1", "p1", 2, "pred", 2, null, T0, s.startedAt)).failure, /inzwischen geändert/);
 });
 
@@ -219,7 +236,7 @@ test("Offline-Mitspieler darf jeder nachtragen; Spielleitung übernehmen nur, we
   let s = allOnline(startedGame(["Eric", "Gina", "Steven"]));
   assert.match(run(applySetCell(s, "p1", "p2", 0, "pred", 1, T0, s.startedAt)).failure, /eigenen Werte/);
   delete s.players.p2.online; // Steven: Akku leer
-  assert.equal(run(applySetCell(s, "p1", "p2", 0, "pred", 1, T0, s.startedAt)).failure, null);
+  assert.equal(run(applySetCell(bidBefore(s, 0, "p2"), "p1", "p2", 0, "pred", 0, T0, s.startedAt)).failure, null);
   assert.equal(isHostAway(s), false);
   assert.match(run(applyClaimHost(s, "p1")).failure, /online/);
   delete s.players.host.online;
@@ -231,7 +248,7 @@ test("Offline-Mitspieler darf jeder nachtragen; Spielleitung übernehmen nur, we
 });
 
 test("Kein stilles Überschreiben: erwarteter Wert muss noch stimmen; Korrekturen werden gemerkt", () => {
-  let s = allOnline(startedGame());
+  let s = bidBefore(allOnline(startedGame()), 3, "p1");
   s = run(applySetCell(s, "p1", "p1", 3, "pred", 2, T0, s.startedAt, null)).value;
   assert.equal(s.lastEdit, undefined, "Ersteintrag ist keine Korrektur");
   // Spielleitung und Gina tippen gleichzeitig: Gina sah noch "leer"
@@ -258,18 +275,50 @@ test("Zurück in die Lobby: gleiche Spieler, neue können beitreten, Start begin
 });
 
 test("Geber reihum, Ansage links vom Geber; Revanche setzt die Reihe fort", () => {
-  let s = startedGame(["A", "B", "C", "D"]);
-  assert.equal(dealerIndex(s, 0), 0);
-  assert.deepEqual(biddingOrder(s, 0), ["p1", "p2", "p3", "host"]);
-  assert.equal(dealerIndex(s, 5), 1);
+  let s = startedGame(["A", "B", "C", "D"]); // ohne Wahl beginnt der Erste der Sitzordnung
+  assert.equal(dealerIndex(s, 0), 3);
+  assert.deepEqual(biddingOrder(s, 0), ["host", "p1", "p2", "p3"]);
+  assert.deepEqual(biddingOrder(s, 1), ["p1", "p2", "p3", "host"]);
+  assert.equal(dealerIndex(s, 5), 0);
   s = fillGame(s);
   s = run(applyRematch(s, "host", T0 + 99999)).value;
-  assert.equal(s.dealerStart, 15 % 4);
-  assert.equal(dealerIndex(s, 0), 3);
+  assert.equal(s.dealerStart, (3 + 15) % 4);
+  assert.equal(dealerIndex(s, 0), 2);
 });
 
 test("Ohne Spiel-Kennung (startedAt) wird nichts eingetragen", () => {
   const s = allOnline(startedGame());
   assert.match(run(applySetCell(s, "p1", "p1", 0, "pred", 1, T0)).failure, /neues Spiel/);
   assert.match(run(applyRevertCell(s, "p1", "p1", 0, "pred", null, 1, T0)).failure, /neues Spiel/);
+});
+
+test("Wer beginnt: Spielleitung wählt in der Lobby, danach reihum", () => {
+  let s = lobbyWith(["Eric", "Gina", "Steven"]);
+  assert.equal(startPlayerOf(s), "host", "ohne Wahl: Erster der Sitzordnung");
+  assert.match(run(applySetStartPlayer(s, "p1", "p2")).failure, /Spielleitung/);
+  assert.match(run(applySetStartPlayer(s, "host", "fremd")).failure, /nicht gefunden/);
+  s = run(applySetStartPlayer(s, "host", "p2")).value;
+  assert.equal(startPlayerOf(s), "p2");
+  s = run(applyStart(s, "host", T0 + 10)).value;
+  assert.deepEqual(biddingOrder(s, 0), ["p2", "host", "p1"], "Steven beginnt, Gina gibt");
+  assert.deepEqual(biddingOrder(s, 1), ["host", "p1", "p2"], "Runde 2: eins weiter");
+  assert.match(run(applySetStartPlayer(s, "host", "p1")).failure, /vor dem Start/);
+});
+
+test("Ansagen online: der Reihe nach, Summe ≠ Kartenzahl, Stiche erst danach", () => {
+  let s = allOnline(startedGame(["Eric", "Gina", "Steven"])); // Runde 2 (Index 1): Gina, Steven, Eric
+  assert.match(run(applySetCell(s, "host", "host", 1, "pred", 0, T0, s.startedAt)).failure, /Noch nicht dran.*Gina/);
+  assert.match(run(applySetCell(s, "host", "p1", 1, "act", 0, T0, s.startedAt)).failure, /erst eintragen/);
+  s = run(applySetCell(s, "p1", "p1", 1, "pred", 1, T0, s.startedAt)).value;
+  s = run(applySetCell(s, "p2", "p2", 1, "pred", 0, T0, s.startedAt)).value;
+  const bids = roundBids(s, 1);
+  assert.equal(bids.nextId, "host");
+  assert.equal(bids.forbiddenFor("host"), 1, "1 + 0 + 1 wären genau 2 Karten");
+  assert.match(run(applySetCell(s, "host", "host", 1, "pred", 1, T0, s.startedAt)).failure, /nicht genau 2.*Eric darf nicht 1/);
+  s = run(applySetCell(s, "host", "host", 1, "pred", 2, T0, s.startedAt)).value;
+  assert.equal(roundBids(s, 1).sum, 3);
+  // Korrektur einer früheren Ansage darf die Summe auch nicht auf 2 bringen (1 + 0 + 2 -> 0 + 0 + 2)
+  assert.match(run(applySetCell(s, "p1", "p1", 1, "pred", 0, T0, s.startedAt)).failure, /nicht genau 2/);
+  assert.equal(run(applySetCell(s, "p1", "p1", 1, "pred", 2, T0, s.startedAt)).failure, null);
+  assert.equal(run(applySetCell(s, "host", "host", 1, "act", 1, T0, s.startedAt)).failure, null, "Stiche nach gültigen Ansagen");
 });

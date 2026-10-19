@@ -39,8 +39,8 @@ export default function OnlineLobby({ onBack }) {
         </form>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0", ...textStyle, fontSize: 12 }}>
-          <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />oder
-          <span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.08)" }} />
+          <span style={{ flex: 1, height: 1, background: "rgb(var(--ink) / 0.08)" }} />oder
+          <span style={{ flex: 1, height: 1, background: "rgb(var(--ink) / 0.08)" }} />
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); join(joinCode); }} style={{ display: "flex", gap: 8 }}>
@@ -56,13 +56,13 @@ export default function OnlineLobby({ onBack }) {
           className="magic-btn-sm" style={{ width: "100%", marginTop: 10, padding: "10px 12px" }}>
           👀 Nur zuschauen
         </button>
-        <p style={{ ...textStyle, fontSize: 11, textAlign: "center", marginTop: 6, color: "rgba(255,255,255,0.3)" }}>
+        <p style={{ ...textStyle, fontSize: 11, textAlign: "center", marginTop: 6, color: "rgb(var(--ink) / 0.3)" }}>
           z. B. für einen Fernseher – zählt nicht als Mitspieler
         </p>
       </div>
 
       <button onClick={onBack} className="magic-btn-secondary" style={{ marginTop: 24 }}>◁ Zurück</button>
-      <p style={{ ...textStyle, fontSize: 12, marginTop: 18, color: "rgba(255,255,255,0.3)", textAlign: "center" }}>
+      <p style={{ ...textStyle, fontSize: 12, marginTop: 18, color: "rgb(var(--ink) / 0.3)", textAlign: "center" }}>
         Code oder QR-Code teilen – alle sehen jeden Eintrag sofort.
       </p>
 

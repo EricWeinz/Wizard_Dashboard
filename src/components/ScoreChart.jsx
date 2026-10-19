@@ -34,11 +34,11 @@ export default function ScoreChart({ data, playerCount, playerNames, totalRounds
         <filter id="glow"><feGaussianBlur stdDeviation="3" result="g" /><feMerge><feMergeNode in="g" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
       </defs>
       {grid.map(v => (
-        <g key={v}><line x1={PAD} x2={W-PADR} y1={y(v)} y2={y(v)} stroke="rgba(255,255,255,0.05)" /><text x={PAD-6} y={y(v)+4} textAnchor="end" fill="rgba(255,255,255,0.2)" fontSize={10} fontFamily="DM Sans">{v}</text></g>
+        <g key={v}><line x1={PAD} x2={W-PADR} y1={y(v)} y2={y(v)} style={{ stroke: "rgb(var(--ink) / 0.05)" }} /><text x={PAD-6} y={y(v)+4} textAnchor="end" style={{ fill: "rgb(var(--ink) / 0.2)" }} fontSize={10} fontFamily="DM Sans">{v}</text></g>
       ))}
-      <line x1={PAD} x2={W-PADR} y1={y(0)} y2={y(0)} stroke="rgba(255,255,255,0.1)" strokeDasharray="4 3" />
+      <line x1={PAD} x2={W-PADR} y1={y(0)} y2={y(0)} style={{ stroke: "rgb(var(--ink) / 0.1)" }} strokeDasharray="4 3" />
       {[0, Math.floor(totalRounds/4), Math.floor(totalRounds/2), Math.floor(totalRounds*3/4), totalRounds].map(r => (
-        <text key={r} x={x(r)} y={H-4} textAnchor="middle" fill="rgba(255,255,255,0.2)" fontSize={10} fontFamily="DM Sans">{r}</text>
+        <text key={r} x={x(r)} y={H-4} textAnchor="middle" style={{ fill: "rgb(var(--ink) / 0.2)" }} fontSize={10} fontFamily="DM Sans">{r}</text>
       ))}
       {series.map((pts, pi) => {
         if (pts.length < 2) return null;
@@ -48,7 +48,7 @@ export default function ScoreChart({ data, playerCount, playerNames, totalRounds
           <g key={pi}>
             <path d={area} fill={`url(#lg${pi})`} />
             <path d={line} fill="none" stroke={PLAYER_COLORS[pi].accent} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)" />
-            {pts.slice(1).map((p, i) => <circle key={i} cx={x(p.r)} cy={y(p.v)} r={3} fill={PLAYER_COLORS[pi].accent} stroke="#0a0616" strokeWidth={1.5} />)}
+            {pts.slice(1).map((p, i) => <circle key={i} cx={x(p.r)} cy={y(p.v)} r={3} fill={PLAYER_COLORS[pi].accent} style={{ stroke: "rgb(var(--s-deep))" }} strokeWidth={1.5} />)}
           </g>
         );
       })}

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useOnlineStore } from "./store.js";
-import { toBoard, canEditPlayer, isHostAway, lastTouchedRound, trickSumMismatches, getCell } from "./rules.js";
+import { toBoard, canEditPlayer, isHostAway, lastTouchedRound, trickSumMismatches, getCell, roundBids } from "./rules.js";
 import { computeGameStats, cardsForRound } from "../lib/wizard.js";
 import GameBoard from "../components/GameBoard.jsx";
 import WinnerScreen from "../components/WinnerScreen.jsx";
@@ -16,7 +16,7 @@ const NOOP = () => {};
 
 const chipStyle = {
   fontSize: 10, padding: "2px 7px", borderRadius: 999, whiteSpace: "nowrap",
-  border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.55)", fontFamily: "'DM Sans', sans-serif",
+  border: "1px solid rgb(var(--ink) / 0.15)", color: "rgb(var(--ink) / 0.55)", fontFamily: "'DM Sans', sans-serif",
 };
 
 /** „✎ Ben hat die Ansage von Carla in Runde 5 von 2 auf 3 geändert.“ */
@@ -89,10 +89,30 @@ export default function OnlineGame() {
     return out;
   }, [session, board, currentRound]);
 
-  const canEdit = useCallback(
-    (pi, ri) => isMember && ri <= currentRound && canEditPlayer(session, playerId, board.ids[pi]),
-    [isMember, currentRound, session, playerId, board],
-  );
+  // Rechte + Ansage-Regeln: Ansagen nur der Reihe nach (vorhandene korrigierbar), Stiche erst nach
+  // gültigen Ansagen. Ohne field (kompakte Zelle) entscheidet die Zahlenauswahl im Detail.
+  const canEdit = useCallback((pi, ri, field) => {
+    const id = board.ids[pi];
+    if (!isMember || ri > currentRound || !canEditPlayer(session, playerId, id)) return false;
+    if (field === "pred") return getCell(session, id, ri, "pred") !== null || roundBids(session, ri).nextId === id;
+    if (field === "act") {
+      if (getCell(session, id, ri, "act") !== null) return true;
+      const bids = roundBids(session, ri);
+      return bids.allIn && !bids.violation;
+    }
+    return true;
+  }, [isMember, currentRound, session, playerId, board]);
+  const currentBids = useMemo(() => roundBids(session, currentRound), [session, currentRound]);
+  const turnCell = !finished && currentBids.nextId ? { pi: board.ids.indexOf(currentBids.nextId), ri: currentRound } : null;
+  // Wer als Letztes ansagt, sieht den verbotenen Wert schon im leeren Feld („≠2“)
+  const cellPlaceholder = (pi, ri, field) => {
+    const id = board.ids[pi];
+    if (field !== "pred" || getCell(session, id, ri, "pred") !== null) return null;
+    const bids = roundBids(session, ri);
+    if (bids.nextId !== id) return null;
+    const forbidden = bids.forbiddenFor(id);
+    return forbidden === null ? null : `≠${forbidden}`;
+  };
 
   // Siegerehrung automatisch – genau einmal je Spiel und nur, wenn alle Stich-Summen stimmen
   useEffect(() => {
@@ -176,7 +196,7 @@ export default function OnlineGame() {
       const s = board.ids.reduce((acc, id) => acc + (getCell(session, id, ri, "act") ?? 0), 0);
       notices.push(`⚠ Runde ${ri + 1}: zusammen ${s} statt ${cardsForRound(ri, total)} Stiche – bitte prüfen.`);
     }
-    const hint = { width: "100%", textAlign: "center", fontSize: 13, color: "rgba(255,255,255,0.45)", fontFamily: "'DM Sans', sans-serif", margin: 0 };
+    const hint = { width: "100%", textAlign: "center", fontSize: 13, color: "rgb(var(--ink) / 0.45)", fontFamily: "'DM Sans', sans-serif", margin: 0 };
     return (
       <>
         <WinnerScreen
@@ -210,7 +230,7 @@ export default function OnlineGame() {
         {id === session.hostId && <span title="Spielleitung" aria-label="Spielleitung" style={{ fontSize: 11 }}>🪄</span>}
         {p?.guest && <span title="Spieler ohne Handy" aria-label="ohne Handy" style={{ fontSize: 11 }}>👤</span>}
         {p && !p.guest && p.online !== true && <span title="offline – Gerät nicht verbunden" aria-label="offline" style={{ fontSize: 11, opacity: 0.75 }}>📴</span>}
-        {pi === myIndex && isMember && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", whiteSpace: "nowrap" }}>(du)</span>}
+        {pi === myIndex && isMember && <span style={{ fontSize: 10, color: "rgb(var(--ink) / 0.35)", whiteSpace: "nowrap" }}>(du)</span>}
       </>
     );
   };
@@ -241,7 +261,7 @@ export default function OnlineGame() {
   const headerExtra = (
     <>
       {spectating && <span style={chipStyle}>👀 Zuschauer</span>}
-      {!connected && <span style={{ ...chipStyle, borderColor: "rgba(239,68,68,0.5)", color: "#fca5a5" }}>offline</span>}
+      {!connected && <span style={{ ...chipStyle, borderColor: "rgb(var(--danger) / 0.5)", color: "rgb(var(--danger-text))" }}>offline</span>}
     </>
   );
 
@@ -255,6 +275,7 @@ export default function OnlineGame() {
         renderPlayerBadge={renderPlayerBadge} highlightPlayer={isMember ? myIndex : null}
         bottomPadding={barHeight} showChart={showChart} onShowChartChange={setShowChart}
         currentRound={currentRound} layout={compact ? "compact" : "wide"} scrollBlock="nearest"
+        turnCell={turnCell} cellPlaceholder={cellPlaceholder}
       />
       <RoundBar
         currentRound={currentRound} mismatches={mismatches} gaps={gaps} finished={finished}

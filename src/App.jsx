@@ -6,6 +6,7 @@ import StartScreen from "./components/StartScreen.jsx";
 import SetupScreen from "./components/SetupScreen.jsx";
 import LocalGame from "./components/LocalGame.jsx";
 import { LAST_SESSION_KEY, TAB_SESSION_KEY, inviteCodeFromUrl } from "./online/keys.js";
+import { useTheme } from "./lib/theme.js";
 
 // Der Online-Modus (inkl. Firebase-SDK) wird erst bei Bedarf nachgeladen –
 // der lokale Modus bleibt so schlank wie bisher.
@@ -31,25 +32,28 @@ function afterLogin() {
    ROOT
    ════════════════════════════════════════════ */
 export default function WizardScoreTracker() {
+  // Designwechsel rendert alles neu (u. a. für die Spielerfarben des Designs)
+  useTheme();
   const [route, setRoute] = useState(() => (isUnlocked() ? afterLogin() : { screen: "login", resume: false }));
   const gs = route.screen;
   const setGs = (screen, resume = false) => setRoute({ screen, resume });
   const [pc, setPc] = useState(4);
   const [pn, setPn] = useState([]);
+  const [ps, setPs] = useState(0); // wer in Runde 1 zuerst ansagt
   const resumeCode = gs === "start" ? readStorage("localStorage", LAST_SESSION_KEY) : null;
 
   return (
     <div style={{
       minHeight: "100vh",
-      background: "radial-gradient(ellipse at 20% 0%, rgba(88,28,135,0.25) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(30,58,138,0.2) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(15,10,30,1) 0%, #050311 100%)",
-      color: "#fff", overflow: "hidden",
+      background: "radial-gradient(ellipse at 20% 0%, rgb(var(--glow-1) / 0.25) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgb(var(--glow-2) / 0.2) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgb(var(--bg-mid) / 1) 0%, rgb(var(--bg)) 100%)",
+      color: "rgb(var(--ink))", overflow: "hidden",
     }}>
       <MagicalBackground />
       {gs === "login" && <LoginScreen onLogin={() => setRoute(afterLogin())} />}
       {gs === "start" && <StartScreen onLocal={() => setGs("setup")} onOnline={() => setGs("online")}
         resumeCode={resumeCode} onResume={() => setGs("online", "card")} />}
-      {gs === "setup" && <SetupScreen onBack={() => setGs("start")} onStart={(c, n) => { setPc(c); setPn(n); setGs("playing"); }} />}
-      {gs === "playing" && <LocalGame playerCount={pc} playerNames={pn} onReset={() => setGs("setup")} />}
+      {gs === "setup" && <SetupScreen onBack={() => setGs("start")} onStart={(c, n, s) => { setPc(c); setPn(n); setPs(s ?? 0); setGs("playing"); }} />}
+      {gs === "playing" && <LocalGame playerCount={pc} playerNames={pn} startIndex={ps} onReset={() => setGs("setup")} />}
       {gs === "online" && (
         <OnlineErrorBoundary onExit={() => setGs("start")}>
           <Suspense fallback={<OnlineLoading />}>
@@ -67,7 +71,7 @@ function OnlineLoading() {
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       minHeight: "100vh", gap: 16, position: "relative", zIndex: 1,
-      fontFamily: "'Cinzel', serif", color: "rgba(192,132,252,0.6)", letterSpacing: 3,
+      fontFamily: "'Cinzel', serif", color: "rgb(var(--accent) / 0.6)", letterSpacing: 3,
     }}>
       <div style={{ fontSize: 40, animation: "spinRune 3s linear infinite" }} aria-hidden>ᛟ</div>
       <div style={{ fontSize: 12, textTransform: "uppercase" }}>Verbinde …</div>
@@ -95,7 +99,7 @@ class OnlineErrorBoundary extends React.Component {
         minHeight: "100vh", padding: 24, position: "relative", zIndex: 1, gap: 20, textAlign: "center",
       }}>
         <div style={{ fontSize: 40 }} aria-hidden>🌩️</div>
-        <p style={{ color: "rgba(255,255,255,0.7)", fontFamily: "'DM Sans', sans-serif", maxWidth: 360, lineHeight: 1.5 }}>
+        <p style={{ color: "rgb(var(--ink) / 0.7)", fontFamily: "'DM Sans', sans-serif", maxWidth: 360, lineHeight: 1.5 }}>
           Der Online-Modus konnte nicht geladen werden. Bitte Internetverbindung prüfen und neu laden.
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>

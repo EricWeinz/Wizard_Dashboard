@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import QRCode from "react-qr-code";
 import { useOnlineStore } from "./store.js";
-import { effectivePlayerOrder, isHostAway, MAX_NAME_LENGTH } from "./rules.js";
+import { effectivePlayerOrder, isHostAway, startPlayerOf, MAX_NAME_LENGTH } from "./rules.js";
 import { PLAYER_COLORS, ROUNDS_MAP, MIN_PLAYERS, MAX_PLAYERS } from "../lib/wizard.js";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
+import { ThemeMenu } from "../components/ThemePicker.jsx";
 import { screenStyle, textStyle, OnlineTitle, copyText, inviteUrl } from "./ui.jsx";
 
 const smallBtn = { padding: "6px 9px", fontSize: 12, lineHeight: 1, minWidth: 40, minHeight: 40 };
@@ -21,6 +22,7 @@ export default function WaitingRoom() {
   const addGuest = useOnlineStore((s) => s.addGuest);
   const removeFromLobby = useOnlineStore((s) => s.removeFromLobby);
   const start = useOnlineStore((s) => s.start);
+  const setStartPlayer = useOnlineStore((s) => s.setStartPlayer);
   const claimHost = useOnlineStore((s) => s.claimHost);
   const leave = useOnlineStore((s) => s.leave);
 
@@ -36,6 +38,9 @@ export default function WaitingRoom() {
   const hostName = session.players?.[session.hostId]?.name ?? "?";
   const url = inviteUrl(sessionCode);
   const canStart = count >= MIN_PLAYERS && count <= MAX_PLAYERS;
+  const starter = startPlayerOf(session);
+  const starterName = session.players?.[starter]?.name ?? "?";
+  const drawStarter = () => setStartPlayer(order[crypto.getRandomValues(new Uint32Array(1))[0] % count]);
 
   // Nachbarn tauschen und die neue Reihenfolge speichern (nur Spielleitung)
   const move = (index, dir) => {
@@ -72,6 +77,7 @@ export default function WaitingRoom() {
       <OnlineTitle subtitle="Warteraum" />
 
       <div className="magic-card" style={{ padding: "26px 18px" }}>
+        <ThemeMenu style={{ position: "absolute", top: 10, right: 10, zIndex: 5 }} />
         {/* Einladen */}
         <div style={{ textAlign: "center" }}>
           <span className="magic-label">◈ Mitspieler einladen ◈</span>
@@ -81,9 +87,9 @@ export default function WaitingRoom() {
             {sessionCode.split("").map((ch, i) => (
               <span key={i} aria-hidden style={{
                 width: 42, height: 52, display: "flex", alignItems: "center", justifyContent: "center",
-                borderRadius: 10, border: "1.5px solid rgba(192,132,252,0.3)", background: "rgba(192,132,252,0.08)",
-                fontFamily: "'Cinzel', serif", fontSize: 24, fontWeight: 700, color: "#f3e8ff",
-                boxShadow: "0 0 16px rgba(192,132,252,0.12)",
+                borderRadius: 10, border: "1.5px solid rgb(var(--accent) / 0.3)", background: "rgb(var(--accent) / 0.08)",
+                fontFamily: "'Cinzel', serif", fontSize: 24, fontWeight: 700, color: "rgb(var(--soft-2))",
+                boxShadow: "0 0 16px rgb(var(--accent) / 0.12)",
               }}>{ch}</span>
             ))}
           </div>
@@ -92,7 +98,7 @@ export default function WaitingRoom() {
             <button onClick={() => copy("link")} className="magic-btn-sm">{copied === "link" ? "✅ Kopiert" : "🔗 Link kopieren"}</button>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, marginTop: 16 }}>
-            <div style={{ background: "#fff", padding: 10, borderRadius: 14, boxShadow: "0 0 30px rgba(192,132,252,0.2)" }}>
+            <div style={{ background: "#fff", padding: 10, borderRadius: 14, boxShadow: "0 0 30px rgb(var(--accent) / 0.2)" }}>
               <QRCode value={url} size={148} fgColor="#0a0616" bgColor="#ffffff" title={`QR-Code für Sitzung ${sessionCode}`} />
             </div>
             <p style={{ ...textStyle, fontSize: 12 }}>📱 Mit der Handykamera scannen, um direkt beizutreten</p>
@@ -109,20 +115,20 @@ export default function WaitingRoom() {
             return (
               <li key={id} style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12,
-                border: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.025)",
+                border: "1px solid rgb(var(--ink) / 0.06)", background: "rgb(var(--ink) / 0.025)",
                 fontFamily: "'DM Sans', sans-serif",
               }}>
-                <span style={{ width: 16, fontSize: 12, color: "rgba(255,255,255,0.3)", textAlign: "right", flexShrink: 0 }}>{i + 1}.</span>
+                <span style={{ width: 16, fontSize: 12, color: "rgb(var(--ink) / 0.3)", textAlign: "right", flexShrink: 0 }}>{i + 1}.</span>
                 <span aria-hidden style={{ width: 10, height: 10, borderRadius: "50%", background: color.accent, boxShadow: `0 0 8px ${color.glow}`, flexShrink: 0 }} />
                 <span style={{
                   flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  fontSize: 15, fontWeight: 600, color: offline ? "rgba(255,255,255,0.4)" : "#fff",
+                  fontSize: 15, fontWeight: 600, color: offline ? "rgb(var(--ink) / 0.4)" : "rgb(var(--ink))",
                 }}>
                   {p.name}
-                  {id === playerId && <span style={{ color: "rgba(255,255,255,0.4)", fontWeight: 400 }}> (du)</span>}
+                  {id === playerId && <span style={{ color: "rgb(var(--ink) / 0.4)", fontWeight: 400 }}> (du)</span>}
                 </span>
                 {p.guest && <span title="Spieler ohne Handy" aria-label="ohne Handy" style={{ fontSize: 13 }}>👤</span>}
-                {offline && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "1px 5px" }}>offline</span>}
+                {offline && <span style={{ fontSize: 10, color: "rgb(var(--ink) / 0.4)", border: "1px solid rgb(var(--ink) / 0.15)", borderRadius: 6, padding: "1px 5px" }}>offline</span>}
                 {id === session.hostId && <span title="Spielleitung" aria-label="Spielleitung" style={{ fontSize: 14 }}>🪄</span>}
                 {isHost && count > 1 && (
                   <span style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -142,8 +148,8 @@ export default function WaitingRoom() {
           })}
           {Array.from({ length: Math.max(0, MAX_PLAYERS - count) }, (_, i) => (
             <li key={`free-${i}`} style={{
-              padding: "9px 12px", borderRadius: 12, border: "1px dashed rgba(255,255,255,0.08)",
-              ...textStyle, fontSize: 13, color: "rgba(255,255,255,0.22)",
+              padding: "9px 12px", borderRadius: 12, border: "1px dashed rgb(var(--ink) / 0.08)",
+              ...textStyle, fontSize: 13, color: "rgb(var(--ink) / 0.22)",
             }}>Freier Platz</li>
           ))}
         </ul>
@@ -161,16 +167,47 @@ export default function WaitingRoom() {
             )}
             {count > 1 && (
               <p style={{ ...textStyle, fontSize: 12, marginTop: 10, textAlign: "center" }}>
-                ↕️ Reihenfolge = Sitzordnung im Uhrzeigersinn. Wer oben steht, gibt in Runde 1.
+                ↕️ Reihenfolge = Sitzordnung im Uhrzeigersinn.
               </p>
             )}
           </>
         )}
 
+        {/* Wer beginnt? Danach geht die Ansage reihum, der Beginn rückt jede Runde eins weiter */}
+        {count > 0 && (
+          <div style={{ marginTop: 20 }}>
+            <span className="magic-label">◈ Wer sagt zuerst an? ◈</span>
+            <div role="radiogroup" aria-label="Wer sagt in Runde 1 zuerst an?" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {order.map((id, i) => {
+                const selected = id === starter;
+                const color = PLAYER_COLORS[i] ?? PLAYER_COLORS[0];
+                return (
+                  <button key={id} type="button" role="radio" aria-checked={selected} disabled={!isHost || busy}
+                    onClick={() => setStartPlayer(id)} style={{
+                      minHeight: 40, padding: "8px 14px", borderRadius: 999, fontSize: 14, fontWeight: 600,
+                      fontFamily: "'DM Sans', sans-serif", cursor: isHost ? "pointer" : "default", transition: "all 0.2s",
+                      border: `1.5px solid ${selected ? color.accent : "rgb(var(--ink) / 0.08)"}`,
+                      background: selected ? color.dim : "rgb(var(--ink) / 0.03)",
+                      color: selected ? "rgb(var(--ink))" : "rgb(var(--ink) / 0.5)",
+                      boxShadow: selected ? `0 0 14px ${color.glow}` : "none", opacity: 1,
+                    }}>{session.players[id].name}</button>
+                );
+              })}
+              {isHost && count > 1 && (
+                <button type="button" onClick={drawStarter} disabled={busy} className="magic-btn-sm"
+                  aria-label="Zufällig auslosen, wer beginnt" style={{ minHeight: 40, borderRadius: 999, padding: "8px 14px" }}>🎲 Auslosen</button>
+              )}
+            </div>
+            <p style={{ ...textStyle, fontSize: 12, marginTop: 8 }}>
+              {starterName} beginnt, danach wird reihum angesagt. Jede Runde beginnt der Nächste; die Summe der Ansagen darf nie der Kartenzahl entsprechen.
+            </p>
+          </div>
+        )}
+
         {/* Start / Warten */}
         <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 10 }}>
           {spectating ? (
-            <p style={{ ...textStyle, textAlign: "center", padding: "12px", borderRadius: 12, background: "rgba(255,255,255,0.04)" }}>
+            <p style={{ ...textStyle, textAlign: "center", padding: "12px", borderRadius: 12, background: "rgb(var(--ink) / 0.04)" }}>
               👀 Du schaust zu – Mitspieler treten mit dem Code bei.
             </p>
           ) : isHost ? (
@@ -178,16 +215,16 @@ export default function WaitingRoom() {
               <button onClick={() => start()} disabled={busy || !canStart} className="magic-btn-primary" style={{ width: "100%", padding: "15px 12px" }}>
                 ✦ Spiel starten ✦
                 <span style={{ display: "block", fontSize: 11, letterSpacing: 1, textTransform: "none", opacity: 0.8, marginTop: 4, fontFamily: "'DM Sans', sans-serif" }}>
-                  {count} Spieler{canStart ? ` · ${ROUNDS_MAP[count]} Runden` : ""}
+                  {count} Spieler{canStart ? ` · ${ROUNDS_MAP[count]} Runden · ${starterName} beginnt` : ""}
                 </span>
               </button>
               {count < MIN_PLAYERS && (
-                <p style={{ ...textStyle, textAlign: "center", color: "rgba(251,191,36,0.75)" }}>Wizard braucht mindestens {MIN_PLAYERS} Spieler.</p>
+                <p style={{ ...textStyle, textAlign: "center", color: "rgb(var(--gold) / 0.75)" }}>Wizard braucht mindestens {MIN_PLAYERS} Spieler.</p>
               )}
             </>
           ) : (
             <>
-              <p style={{ ...textStyle, textAlign: "center", padding: "12px", borderRadius: 12, background: "rgba(255,255,255,0.04)" }}>
+              <p style={{ ...textStyle, textAlign: "center", padding: "12px", borderRadius: 12, background: "rgb(var(--ink) / 0.04)" }}>
                 ⏳ Warten, bis {hostName} das Spiel startet …
               </p>
               {isHostAway(session) && (

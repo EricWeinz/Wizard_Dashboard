@@ -248,6 +248,12 @@ export const useOnlineStore = create((set, get) => {
       if (sessionCode) await withBusy(() => S.removeLobbyPlayer(sessionCode, playerId, targetId));
     },
 
+    /** Spielleitung: wer sagt in Runde 1 zuerst an? */
+    setStartPlayer: async (targetId) => {
+      const { sessionCode, playerId } = get();
+      if (sessionCode) await withBusy(() => S.setStartPlayer(sessionCode, playerId, targetId));
+    },
+
     start: async () => {
       const { sessionCode, playerId } = get();
       if (sessionCode) await withBusy(() => S.startGame(sessionCode, playerId));

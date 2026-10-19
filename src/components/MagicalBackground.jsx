@@ -8,7 +8,7 @@ export default function MagicalBackground() {
   const orbs = useMemo(() => Array.from({ length: 6 }, (_, i) => ({
     id: i, x: 10 + Math.random() * 80, y: 10 + Math.random() * 80,
     size: 200 + Math.random() * 400,
-    color: ["rgba(139,92,246,0.08)","rgba(59,130,246,0.06)","rgba(236,72,153,0.05)","rgba(52,211,153,0.04)","rgba(251,191,36,0.05)","rgba(99,102,241,0.07)"][i],
+    color: ["rgb(var(--btn-c) / 0.08)","rgb(var(--orb-blue) / 0.06)","rgb(var(--orb-pink) / 0.05)","rgb(var(--success) / 0.04)","rgb(var(--gold) / 0.05)","rgb(var(--btn-b) / 0.07)"][i],
     dur: 15 + Math.random() * 25, delay: Math.random() * -20,
   })), []);
   const stars = useMemo(() => Array.from({ length: 120 }, (_, i) => ({
@@ -38,22 +38,22 @@ export default function MagicalBackground() {
         <div key={s.id} style={{
           position: "absolute", left: `${s.x}%`, top: `${s.y}%`,
           width: s.size, height: s.size, borderRadius: "50%",
-          background: s.bright ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.5)",
-          boxShadow: s.bright ? "0 0 6px 2px rgba(192,132,252,0.4)" : "none",
+          background: s.bright ? "rgb(var(--ink) / 0.9)" : "rgb(var(--ink) / 0.5)",
+          boxShadow: s.bright ? "0 0 6px 2px rgb(var(--accent) / 0.4)" : "none",
           animation: `twinkle ${s.dur}s ${s.delay}s infinite ease-in-out`,
         }} />
       ))}
       {runes.map(r => (
         <div key={r.id} style={{
           position: "absolute", left: `${r.x}%`, top: `${r.y}%`,
-          fontSize: r.size, color: "rgba(192,132,252,0.06)", fontFamily: "serif",
+          fontSize: r.size, color: "rgb(var(--accent) / 0.06)", fontFamily: "serif",
           animation: `floatRune ${r.dur}s ${r.delay}s infinite ease-in-out`,
           "--dx": `${r.driftX}px`, "--dy": `${r.driftY}px`,
         }}>{r.char}</div>
       ))}
       <div style={{
         position: "absolute", top: 0, left: "-20%", right: "-20%", height: "40%",
-        background: "linear-gradient(180deg, rgba(139,92,246,0.04) 0%, rgba(59,130,246,0.03) 30%, rgba(52,211,153,0.02) 60%, transparent 100%)",
+        background: "linear-gradient(180deg, rgb(var(--btn-c) / 0.04) 0%, rgb(var(--orb-blue) / 0.03) 30%, rgb(var(--success) / 0.02) 60%, transparent 100%)",
         animation: "aurora 20s infinite ease-in-out", filter: "blur(60px)", transformOrigin: "center top",
       }} />
     </div>

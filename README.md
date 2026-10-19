@@ -11,12 +11,19 @@ or **online, with everyone following the score live on their own phone**.
 ## ✨ Features
 
 - 3 to 6 players with custom names
+- Official rules: round n is played with n cards (3 players: 20 rounds, 4: 15, 5: 12, 6: 10)
+- Bidding in turn: before the game you pick who bids first (or draw at random); bids then go round the
+  table in seat order, the start moves one seat on every round and the dealer bids last
+- The bids may never add up to the number of cards in the round – the last bidder sees the forbidden
+  number (e.g. "≠2"), and tricks can only be entered once all bids are in and valid
 - Automatic point calculation per round
 - Live scoreboard with animated totals
 - Score progression chart
 - Hit rate tracking per player
 - Undo function
 - Fully responsive
+- 🎨 Seven switchable colour designs – Arcane, Fire, Frost, Druid Grove, Royal Court, Neon Magic and a light
+  Parchment design in the style of the official rule book; pick one on the start page or via 🎨 during the game
 
 ### 🌐 Online mode
 
@@ -24,8 +31,11 @@ Like the Kniffel Dashboard's online mode: one person creates a session, everybod
 with a **6-character code, an invite link or a QR code**. Every entry shows up on all screens
 instantly (Firebase Realtime Database).
 
-- **Everyone enters their own bid and tricks** in a bottom input bar made for phones
-  (bids first, tricks once everyone has bid), shows who the dealer is and who is still missing
+- **Everyone enters their own bid and tricks** in a bottom input bar made for phones;
+  it shows who deals, whose turn it is to bid and which number the last bidder may not say
+- **The host picks who bids first** in the lobby (or draws at random); the same bidding rules as on one
+  device are enforced for every write, so nobody can bid out of turn or make the bids add up to the
+  number of cards
 - **Players without a phone** can be added by the host; anyone at the table can enter their values
 - **Spectator mode** for a TV or laptop – sees everything live, isn't counted as a player
 - **Live presence**, automatic reconnect after a reload, and anyone can take over as host
@@ -70,6 +80,7 @@ npm test               # rules of the online mode (node --test)
 src/
 ├── App.jsx                 # Routing: login → start → local game / online mode (lazy)
 ├── lib/wizard.js           # Rules & scoring shared by both modes
+├── lib/theme.js            # Colour designs (CSS variables + player palettes)
 ├── components/             # Shared UI: GameBoard (table, cards, chart), WinnerScreen, …
 └── online/
     ├── rules.js            # Pure session logic (tested)

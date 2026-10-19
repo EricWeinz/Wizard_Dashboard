@@ -16,7 +16,7 @@ export default function ConfigMissing({ onBack, detail }) {
       <OnlineTitle subtitle="Online-Sitzung" />
       <div className="magic-card" style={{ padding: "28px 22px" }}>
         <span className="magic-label">◈ Noch nicht eingerichtet ◈</span>
-        <p style={{ ...textStyle, color: "rgba(255,255,255,0.75)", fontSize: 15 }}>
+        <p style={{ ...textStyle, color: "rgb(var(--ink) / 0.75)", fontSize: 15 }}>
           Für den Online-Modus fehlt die Firebase-Konfiguration. Lokal an einem Gerät spielen geht weiterhin.
         </p>
         <p style={{ ...textStyle, marginTop: 12 }}>
@@ -25,10 +25,10 @@ export default function ConfigMissing({ onBack, detail }) {
         </p>
         <pre style={{
           marginTop: 12, padding: 14, borderRadius: 12, overflowX: "auto", fontSize: 12, lineHeight: 1.6,
-          background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.06)", color: "#c4b5fd",
+          background: "rgba(0,0,0,0.35)", border: "1px solid rgb(var(--ink) / 0.06)", color: "rgb(var(--soft-3))",
         }}>{VARS}</pre>
         <p style={{ ...textStyle, marginTop: 12 }}>Schritt für Schritt: <strong>SETUP_PRIVAT.md</strong> bzw. README.</p>
-        {detail && <p style={{ ...textStyle, marginTop: 10, color: "rgba(248,113,113,0.8)", fontSize: 12 }}>{detail}</p>}
+        {detail && <p style={{ ...textStyle, marginTop: 10, color: "rgb(var(--danger-2) / 0.8)", fontSize: 12 }}>{detail}</p>}
       </div>
       <button onClick={onBack} className="magic-btn-secondary" style={{ marginTop: 24 }}>◁ Zurück</button>
     </div>

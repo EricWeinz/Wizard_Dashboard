@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useOnlineStore } from "./store.js";
-import { getCell, canEditPlayer, dealerIndex, biddingOrder, isMember as isMemberOf } from "./rules.js";
+import { getCell, canEditPlayer, dealerIndex, biddingOrder, roundBids, isMember as isMemberOf } from "./rules.js";
 import { PLAYER_COLORS, cardsForRound, calcPoints } from "../lib/wizard.js";
 import { joinNames } from "./ui.jsx";
 
@@ -12,7 +12,7 @@ const TAP_GUARD_MS = 400;
 const oneLine = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
 const warnStyle = {
   flexShrink: 0, minHeight: 40, padding: "8px 12px", borderRadius: 10, fontSize: 12, lineHeight: 1.3,
-  border: "1px solid rgba(239,68,68,0.45)", background: "rgba(239,68,68,0.1)", color: "#fecaca",
+  border: "1px solid rgb(var(--danger) / 0.45)", background: "rgb(var(--danger) / 0.1)", color: "rgb(var(--danger-text-2))",
   fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap", textAlign: "left",
 };
 const smallBtn = { minHeight: 40, padding: "8px 12px", fontSize: 13 };
@@ -108,6 +108,8 @@ export default function RoundBar({ currentRound, mismatches, gaps, finished, onO
   const dealerId = order[dealerIndex(session, R)];
   const bidOrder = biddingOrder(session, R);
   const missingIds = allPreds ? bidOrder.filter((id) => cell(id, "act") === null) : bidOrder.filter((id) => cell(id, "pred") === null);
+  // Ansage-Regeln: der Reihe nach, Summe ≠ Kartenzahl
+  const bids = roundBids(session, R);
 
   const member = !spectating && isMemberOf(session, playerId);
   // Wen darf ich hier eintragen? Mich zuerst, dann die anderen in Sitzordnung.
@@ -126,10 +128,12 @@ export default function RoundBar({ currentRound, mismatches, gaps, finished, onO
   let line2;
   if (finished) line2 = "🏆 Alle Runden sind gespielt.";
   else if (predCount === 0) line2 = `Noch keine Ansagen – ${name(bidOrder[0])} beginnt.`;
-  else if (!allPreds) line2 = `${predCount} von ${n} haben angesagt (zusammen ${sum(preds)})`;
+  else if (!allPreds) line2 = `${predCount} von ${n} haben angesagt (zusammen ${sum(preds)}) · jetzt: ${name(bids.nextId)}`;
+  else if (bids.violation) line2 = `⚠ Die Ansagen ergeben genau ${C} – nicht erlaubt, bitte eine Ansage ändern.`;
   else if (actCount === 0) line2 = `Alle haben angesagt (zusammen ${sum(preds)} bei ${karten(C)}) – viel Glück!`;
   else line2 = `Stiche: ${actCount} von ${n} eingetragen (zusammen ${sum(acts)} von ${C})`;
-  const showWaiting = !finished && predCount > 0 && missingIds.length > 0 && !(allPreds && actCount === 0);
+  // Beim Ansagen zählt nur, wer jetzt dran ist (steht schon in Zeile 2); beim Stiche-Eintragen alle Fehlenden
+  const showWaiting = !finished && allPreds && actCount > 0 && missingIds.length > 0;
   const waiting = showWaiting ? `Warten auf ${joinNames(missingIds.map(name))} …` : null;
 
   /* ── Hinweise: falsche Stich-Summen, Lücken in alten Runden, offline ── */
@@ -170,35 +174,49 @@ export default function RoundBar({ currentRound, mismatches, gaps, finished, onO
     if (mine) return;
     // Für jemand anderen eingetragen: kurz bestätigen und zum nächsten Gast/offline
     // Mitspieler springen, dem im aktuellen Schritt noch der Wert fehlt – nie zu
-    // jemandem, der selbst online ist. Sonst zurück zu „Du“.
-    const start = order.indexOf(T);
+    // jemandem, der selbst online ist. Sonst zurück zu „Du“. Ansagen folgen dabei
+    // der Ansage-Reihenfolge (nur der direkt Nächste kommt in Frage).
     let next = null;
-    for (let k = 1; k < n && !next; k++) {
-      const id = order[(start + k) % n];
-      if (id !== playerId && editable.includes(id) && isAutoTarget(id) && cell(id, field) === null) next = id;
+    if (field === "pred") {
+      const following = bids.order[bids.order.indexOf(T) + 1];
+      if (following && following !== playerId && editable.includes(following) && isAutoTarget(following) && cell(following, "pred") === null) next = following;
+    } else {
+      const start = order.indexOf(T);
+      for (let k = 1; k < n && !next; k++) {
+        const id = order[(start + k) % n];
+        if (id !== playerId && editable.includes(id) && isAutoTarget(id) && cell(id, field) === null) next = id;
+      }
     }
     setTargetId(next ?? playerId);
     setFlash({ text: `✓ ${name(T)}: ${value}${next ? ` – weiter mit ${name(next)}` : ""}`, id: next });
   };
 
-  const numberButtons = (field, current) => (
+  const numberButtons = (field, current, forbidden = null) => (
     <div key={`${R}-${field}-${T}`} style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
       {Array.from({ length: C + 1 }, (_, v) => {
         const selected = current === v;
+        const blocked = v === forbidden;
         const c = colorOf(T);
         return (
-          <button key={v} className="magic-chip" aria-pressed={selected}
-            aria-label={`${field === "pred" ? "Ansage" : "Stiche"} ${v} für ${forWhom}`} onClick={() => pick(field, v)}
+          <button key={v} className="magic-chip" aria-pressed={selected} disabled={blocked}
+            aria-label={`${field === "pred" ? "Ansage" : "Stiche"} ${v} für ${forWhom}${blocked ? " (nicht erlaubt)" : ""}`} onClick={() => pick(field, v)}
+            title={blocked ? `Nicht erlaubt: Zusammen wären es genau ${C} Ansagen bei ${C} Karten` : undefined}
             style={{
               minWidth: 42, height: 42, padding: "0 10px",
-              ...(selected ? { borderColor: c.accent, background: c.dim, color: "#fff", boxShadow: `0 0 12px ${c.glow}` } : {}),
+              ...(blocked ? { textDecoration: "line-through", borderColor: "rgb(var(--danger) / 0.5)", color: "rgb(var(--danger-2))" } : {}),
+              ...(selected ? { borderColor: c.accent, background: c.dim, color: "rgb(var(--ink))", boxShadow: `0 0 12px ${c.glow}` } : {}),
             }}>{v}</button>
         );
       })}
     </div>
   );
+  const forbiddenNote = (forbidden) => forbidden === null ? null : (
+    <div style={{ fontSize: 12, color: "rgb(var(--danger-text))", margin: "-2px 0 6px" }}>
+      {forbidden} ist nicht erlaubt – sonst ergäben die Ansagen zusammen genau {C}.
+    </div>
+  );
 
-  const label = (text) => <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginBottom: 6 }}>{text}</div>;
+  const label = (text) => <div style={{ fontSize: 12, color: "rgb(var(--ink) / 0.6)", marginBottom: 6 }}>{text}</div>;
   const editChip = (text, field, aria) => (
     <button onClick={() => startStep(() => setEditing(field))} aria-label={aria} className="magic-btn-sm" style={smallBtn}>{text}</button>
   );
@@ -207,22 +225,47 @@ export default function RoundBar({ currentRound, mismatches, gaps, finished, onO
   if (finished) {
     step = (
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 14, color: "#fde68a" }}>🏆 Spiel beendet</span>
+        <span style={{ fontSize: 14, color: "rgb(var(--gold-text))" }}>🏆 Spiel beendet</span>
         <button onClick={onShowWinner} className="magic-btn-gold" style={{ minHeight: 40 }}>Ergebnis ansehen</button>
       </div>
     );
   } else if (T) {
     const tPred = cell(T, "pred");
     const tAct = cell(T, "act");
-    if (editing === "pred" || tPred === null) {
-      step = <>{label(`Ansage für ${forWhom}:`)}{numberButtons("pred", tPred)}</>;
+    if ((editing === "pred" || tPred === null) && tPred === null && bids.nextId !== T) {
+      // Der Reihe nach: Wer noch nicht dran ist, sieht auf wen gewartet wird
+      const nextId = bids.nextId;
+      const canHelp = nextId && nextId !== playerId && editable.includes(nextId);
+      step = (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, color: "rgb(var(--ink) / 0.65)" }}>
+            {mine ? "Du bist noch nicht dran" : `${name(T)} ist noch nicht dran`} – zuerst sagt{" "}
+            <strong style={{ color: colorOf(nextId).accent }}>{name(nextId)}</strong> an.
+          </span>
+          {canHelp && (
+            <button onClick={() => startStep(() => { setTargetId(nextId); setEditing(null); })} className="magic-btn-sm" style={smallBtn}>
+              Für {name(nextId)} eintragen
+            </button>
+          )}
+        </div>
+      );
+    } else if (editing === "pred" || tPred === null) {
+      const forbidden = bids.forbiddenFor(T);
+      step = <>{label(mine && tPred === null ? "Du bist dran – deine Ansage:" : `Ansage für ${forWhom}:`)}{forbiddenNote(forbidden)}{numberButtons("pred", tPred, forbidden)}</>;
     } else if (!allPreds) {
       step = (
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           {editChip(`Ansage ${tPred} ✎`, "pred", `${valueLabel("pred")} (${tPred}) ändern`)}
-          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)" }}>
+          <span style={{ fontSize: 13, color: "rgb(var(--ink) / 0.55)" }}>
             {mine ? "Deine Ansage steht." : `Ansage von ${name(T)} steht.`}
           </span>
+        </div>
+      );
+    } else if (bids.violation) {
+      step = (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, color: "rgb(var(--danger-text))" }}>⚠ Die Ansagen ergeben zusammen genau {C} – bitte eine Ansage ändern.</span>
+          {editChip(`Ansage ${tPred} ✎`, "pred", `${valueLabel("pred")} (${tPred}) ändern`)}
         </div>
       );
     } else if (editing === "act" || (tAct === null && actOpenRound === R)) {
@@ -230,7 +273,7 @@ export default function RoundBar({ currentRound, mismatches, gaps, finished, onO
     } else if (tAct === null) {
       step = (
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.65)" }}>Alle haben angesagt – die Runde läuft.</span>
+          <span style={{ fontSize: 13, color: "rgb(var(--ink) / 0.65)" }}>Alle haben angesagt – die Runde läuft.</span>
           <button onClick={() => startStep(() => setActOpenRound(R))} className="magic-btn-primary"
             style={{ minHeight: 40, padding: "10px 16px", fontSize: 12 }}>
             Stiche eintragen →
@@ -243,7 +286,7 @@ export default function RoundBar({ currentRound, mismatches, gaps, finished, onO
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontSize: 14 }}>
             ✓ Ansage {tPred} · Stiche {tAct} ·{" "}
-            <strong style={{ color: pts >= 0 ? "#34d399" : "#f87171" }}>{pts >= 0 ? "+" : ""}{pts}</strong>
+            <strong style={{ color: pts >= 0 ? "rgb(var(--success))" : "rgb(var(--danger-2))" }}>{pts >= 0 ? "+" : ""}{pts}</strong>
           </span>
           {editChip("Ansage ✎", "pred", `${valueLabel("pred")} ändern`)}
           {editChip("Stiche ✎", "act", `${valueLabel("act")} ändern`)}
@@ -261,8 +304,8 @@ export default function RoundBar({ currentRound, mismatches, gaps, finished, onO
           <button key={id} aria-pressed={selected} onClick={() => startStep(() => { setTargetId(id); setEditing(null); })} style={{
             flexShrink: 0, minHeight: 40, padding: "8px 14px", borderRadius: 999, cursor: "pointer", fontSize: 13, fontWeight: 600,
             fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s",
-            border: `1.5px solid ${selected ? c.accent : "rgba(255,255,255,0.12)"}`,
-            background: selected ? c.dim : "rgba(255,255,255,0.03)", color: selected ? "#fff" : "rgba(255,255,255,0.65)",
+            border: `1.5px solid ${selected ? c.accent : "rgb(var(--ink) / 0.12)"}`,
+            background: selected ? c.dim : "rgb(var(--ink) / 0.03)", color: selected ? "rgb(var(--ink))" : "rgb(var(--ink) / 0.65)",
             boxShadow: flash?.id === id ? `0 0 16px ${c.glow}` : "none",
           }}>
             {id === playerId ? "Du" : name(id)}{session.players[id]?.guest ? " 👤" : ""}
@@ -274,18 +317,18 @@ export default function RoundBar({ currentRound, mismatches, gaps, finished, onO
 
   return createPortal(
     <div ref={rootRef} tabIndex={-1} role="region" aria-label="Eingabe für die aktuelle Runde" style={{
-      position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50, color: "#fff", outline: "none",
+      position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50, color: "rgb(var(--ink))", outline: "none",
       maxHeight: "min(320px, 55vh)", overflowY: "auto",
-      background: "rgba(10,7,24,0.97)", borderTop: "1px solid rgba(192,132,252,0.2)",
+      background: "rgb(var(--s-bar) / 0.97)", borderTop: "1px solid rgb(var(--accent) / 0.2)",
       boxShadow: "0 -10px 30px rgba(0,0,0,0.45)", padding: "10px 12px calc(10px + env(safe-area-inset-bottom))",
       fontFamily: "'DM Sans', sans-serif",
     }}>
       <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div aria-live="polite" style={{ flex: 1, minWidth: 0 }}>
-            <div title={line1} style={{ fontSize: 13, fontWeight: 700, color: "#e9d5ff", ...oneLine }}>{line1}</div>
-            <div title={waiting ? `${line2} · ${waiting}` : line2} style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 2, ...oneLine }}>
-              {line2}{waiting && !collapsed && <> · <span style={{ color: "rgba(251,191,36,0.85)" }}>{waiting}</span></>}
+            <div title={line1} style={{ fontSize: 13, fontWeight: 700, color: "rgb(var(--soft))", ...oneLine }}>{line1}</div>
+            <div title={waiting ? `${line2} · ${waiting}` : line2} style={{ fontSize: 12, color: "rgb(var(--ink) / 0.55)", marginTop: 2, ...oneLine }}>
+              {line2}{waiting && !collapsed && <> · <span style={{ color: "rgb(var(--gold) / 0.85)" }}>{waiting}</span></>}
             </div>
           </div>
           <button onClick={() => setCollapsed((c) => !c)} aria-expanded={!collapsed}
@@ -301,7 +344,7 @@ export default function RoundBar({ currentRound, mismatches, gaps, finished, onO
           </div>
         )}
 
-        {!collapsed && flash && <div role="status" style={{ fontSize: 12, color: "#86efac" }}>{flash.text}</div>}
+        {!collapsed && flash && <div role="status" style={{ fontSize: 12, color: "rgb(var(--success-text))" }}>{flash.text}</div>}
         {!collapsed && chips}
         {!collapsed && <div ref={stepRef}>{step}</div>}
       </div>
