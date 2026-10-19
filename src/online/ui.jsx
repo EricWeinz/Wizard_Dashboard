@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import ThemeLogo from "../components/ThemeLogo.jsx";
 
 /* ════════════════════════════════════════════
    KLEINE BAUSTEINE FÜR DIE ONLINE-SCREENS
@@ -116,8 +117,9 @@ export function Toast({ tone = "error", children, onClose }) {
 export function OnlineTitle({ subtitle }) {
   return (
     <div style={{ textAlign: "center", marginBottom: 28 }}>
-      <h1 style={{
-        fontSize: "clamp(40px, 9vw, 60px)", fontFamily: "'Cinzel Decorative', cursive", margin: 0, lineHeight: 1.1,
+      <ThemeLogo height={64} style={{ margin: "0 auto 10px" }} />
+      <h1 className="brand-title" style={{
+        fontSize: "clamp(40px, 9vw, 60px)", fontFamily: "var(--font-title)", margin: 0, lineHeight: 1.1,
         background: "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-mid)) 50%, rgb(var(--accent-2)) 100%)",
         backgroundSize: "200% 200%", animation: "shimmer 4s ease-in-out infinite",
         WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
@@ -125,7 +127,7 @@ export function OnlineTitle({ subtitle }) {
       }}>Wizard</h1>
       <div style={{
         fontSize: 11, letterSpacing: 5, textTransform: "uppercase", color: "rgb(var(--accent) / 0.5)",
-        marginTop: 8, fontFamily: "'Cinzel', serif",
+        marginTop: 8, fontFamily: "var(--font-label)",
       }}>✦ {subtitle} ✦</div>
     </div>
   );
@@ -136,7 +138,7 @@ export function Spinner({ label }) {
   return (
     <div role="status" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
       <div aria-hidden style={{ fontSize: 40, color: "rgb(var(--accent) / 0.6)", animation: "spinRune 3s linear infinite" }}>ᛟ</div>
-      <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: "rgb(var(--accent) / 0.6)", fontFamily: "'Cinzel', serif", textAlign: "center" }}>{label}</div>
+      <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: "rgb(var(--accent) / 0.6)", fontFamily: "var(--font-label)", textAlign: "center" }}>{label}</div>
     </div>
   );
 }

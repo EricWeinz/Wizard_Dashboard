@@ -12,8 +12,9 @@ or **online, with everyone following the score live on their own phone**.
 
 - 3 to 6 players with custom names
 - Official rules: round n is played with n cards (3 players: 20 rounds, 4: 15, 5: 12, 6: 10)
-- Bidding in turn: before the game you pick who bids first (or draw at random); bids then go round the
-  table in seat order, the start moves one seat on every round and the dealer bids last
+- Bidding in turn: a highlighted card at the top of the setup (and of the online lobby) asks who bids first –
+  tap a name or draw at random; bids then go round the table in seat order, the start moves one seat on
+  every round and the dealer bids last
 - The bids may never add up to the number of cards in the round – the last bidder sees the forbidden
   number (e.g. "≠2"), and tricks can only be entered once all bids are in and valid
 - Automatic point calculation per round
@@ -22,8 +23,10 @@ or **online, with everyone following the score live on their own phone**.
 - Hit rate tracking per player
 - Undo function
 - Fully responsive
-- 🎨 Seven switchable colour designs – Arcane, Fire, Frost, Druid Grove, Royal Court, Neon Magic and a light
-  Parchment design in the style of the official rule book; pick one on the start page or via 🎨 during the game
+- 🎨 Eight switchable designs – Arcane, Fire, Frost, Druid Grove, Royal Court, Neon Magic, a light Parchment
+  design in the style of the official rule book and **Dynamo** in black and yellow (like the Kniffel Dashboard):
+  Dynamo Dresden crest in the headers and as favicon, stadium floodlights, a sporty font and „Abpfiff!“ on the
+  winner screen; pick one on the start page or via 🎨 during the game
 
 ### 🌐 Online mode
 
@@ -80,11 +83,12 @@ npm test               # rules of the online mode (node --test)
 src/
 ├── App.jsx                 # Routing: login → start → local game / online mode (lazy)
 ├── lib/wizard.js           # Rules & scoring shared by both modes
-├── lib/theme.js            # Colour designs (CSS variables + player palettes)
+├── lib/theme.js            # Designs (CSS variables, player palettes, logos, decorations)
 ├── components/             # Shared UI: GameBoard (table, cards, chart), WinnerScreen, …
 └── online/
     ├── rules.js            # Pure session logic (tested)
     ├── session.js          # Firebase transactions, live subscription, presence
     ├── store.js            # Zustand store, reconnect
     └── *.jsx               # Lobby, waiting room, live game, input bar
+public/                     # Dynamo Dresden crest (logo + favicon of the Dynamo design)
 ```

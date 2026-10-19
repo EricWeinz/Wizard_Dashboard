@@ -1,11 +1,13 @@
 import React from "react";
-import { RUNES, MAGIC_SYMBOLS } from "../lib/wizard.js";
 import ThemePicker from "./ThemePicker.jsx";
+import ThemeLogo from "./ThemeLogo.jsx";
+import { themeGlyphs, useTheme } from "../lib/theme.js";
 
 /* ════════════════════════════════════════════
    START SCREEN – Spielart wählen
    ════════════════════════════════════════════ */
 export default function StartScreen({ onLocal, onOnline, resumeCode = null, onResume }) {
+  const { ring, symbols } = themeGlyphs(useTheme());
   return (
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -23,14 +25,15 @@ export default function StartScreen({ onLocal, onOnline, resumeCode = null, onRe
             return <div key={i} style={{
               position: "absolute", left: `${50 + Math.cos(a) * 50}%`, top: `${50 + Math.sin(a) * 50}%`,
               transform: "translate(-50%,-50%)", fontSize: 16, color: "rgb(var(--accent) / 0.15)",
-            }}>{RUNES[i + 8]}</div>;
+            }}>{ring[(i + 8) % ring.length]}</div>;
           })}
         </div>
-        <div style={{ fontSize: 12, letterSpacing: 8, textTransform: "uppercase", color: "rgb(var(--accent) / 0.5)", marginBottom: 12, fontFamily: "'Cinzel', serif", position: "relative" }}>
+        <ThemeLogo height={96} style={{ margin: "0 auto 16px", position: "relative", animation: "floatY 4s infinite ease-in-out" }} />
+        <div style={{ fontSize: 12, letterSpacing: 8, textTransform: "uppercase", color: "rgb(var(--accent) / 0.5)", marginBottom: 12, fontFamily: "var(--font-label)", position: "relative" }}>
           ✦ Score Tracker ✦
         </div>
-        <h1 style={{
-          fontSize: "clamp(52px, 9vw, 88px)", fontFamily: "'Cinzel Decorative', cursive",
+        <h1 className="brand-title" style={{
+          fontSize: "clamp(52px, 9vw, 88px)", fontFamily: "var(--font-title)",
           background: "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-mid)) 25%, rgb(var(--accent-2)) 50%, rgb(var(--accent-mid)) 75%, rgb(var(--accent)) 100%)",
           backgroundSize: "200% 200%", animation: "shimmer 4s ease-in-out infinite",
           WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
@@ -38,7 +41,7 @@ export default function StartScreen({ onLocal, onOnline, resumeCode = null, onRe
           filter: "drop-shadow(0 0 30px rgb(var(--accent) / 0.3))",
         }}>Wizard</h1>
         <div style={{ marginTop: 8, fontSize: 13, color: "rgb(var(--ink) / 0.25)", fontFamily: "'DM Sans', sans-serif", letterSpacing: 2 }}>
-          {MAGIC_SYMBOLS.slice(0, 7).join(" ")}
+          {symbols.slice(0, 7).join(" ")}
         </div>
       </div>
 
@@ -49,7 +52,7 @@ export default function StartScreen({ onLocal, onOnline, resumeCode = null, onRe
             <button className="magic-option" onClick={onResume} style={{ borderColor: "rgb(var(--gold) / 0.35)", background: "rgb(var(--gold) / 0.06)" }}>
               <span style={{ fontSize: 30, filter: "drop-shadow(0 0 10px rgb(var(--gold) / 0.35))" }} aria-hidden>↩</span>
               <span>
-                <span style={{ display: "block", fontFamily: "'Cinzel', serif", fontSize: 16, fontWeight: 700, letterSpacing: 1, color: "rgb(var(--gold-text))" }}>
+                <span style={{ display: "block", fontFamily: "var(--font-label)", fontSize: 16, fontWeight: 700, letterSpacing: 1, color: "rgb(var(--gold-text))" }}>
                   Zurück zu Sitzung <span style={{ letterSpacing: 3 }}>{resumeCode}</span>
                 </span>
                 <span style={{ display: "block", fontSize: 13, color: "rgb(var(--ink) / 0.45)", marginTop: 4, lineHeight: 1.4 }}>
@@ -61,7 +64,7 @@ export default function StartScreen({ onLocal, onOnline, resumeCode = null, onRe
           <button className="magic-option" onClick={onLocal}>
             <span style={{ fontSize: 30, filter: "drop-shadow(0 0 10px rgb(var(--accent) / 0.35))" }} aria-hidden>🏠</span>
             <span>
-              <span style={{ display: "block", fontFamily: "'Cinzel', serif", fontSize: 16, fontWeight: 700, letterSpacing: 1, color: "rgb(var(--soft))" }}>An einem Gerät</span>
+              <span style={{ display: "block", fontFamily: "var(--font-label)", fontSize: 16, fontWeight: 700, letterSpacing: 1, color: "rgb(var(--soft))" }}>An einem Gerät</span>
               <span style={{ display: "block", fontSize: 13, color: "rgb(var(--ink) / 0.45)", marginTop: 4, lineHeight: 1.4 }}>
                 Eine Person trägt für alle ein – wie gewohnt.
               </span>
@@ -70,7 +73,7 @@ export default function StartScreen({ onLocal, onOnline, resumeCode = null, onRe
           <button className="magic-option" onClick={onOnline}>
             <span style={{ fontSize: 30, filter: "drop-shadow(0 0 10px rgb(var(--accent-2) / 0.35))" }} aria-hidden>🌐</span>
             <span>
-              <span style={{ display: "block", fontFamily: "'Cinzel', serif", fontSize: 16, fontWeight: 700, letterSpacing: 1, color: "rgb(var(--soft-blue))" }}>Online-Sitzung</span>
+              <span style={{ display: "block", fontFamily: "var(--font-label)", fontSize: 16, fontWeight: 700, letterSpacing: 1, color: "rgb(var(--soft-blue))" }}>Online-Sitzung</span>
               <span style={{ display: "block", fontSize: 13, color: "rgb(var(--ink) / 0.45)", marginTop: 4, lineHeight: 1.4 }}>
                 Alle sehen den Spielstand live auf dem eigenen Handy. Beitreten per Code, Link oder QR-Code.
               </span>

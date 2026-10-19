@@ -71,7 +71,7 @@ function OnlineLoading() {
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       minHeight: "100vh", gap: 16, position: "relative", zIndex: 1,
-      fontFamily: "'Cinzel', serif", color: "rgb(var(--accent) / 0.6)", letterSpacing: 3,
+      fontFamily: "var(--font-label)", color: "rgb(var(--accent) / 0.6)", letterSpacing: 3,
     }}>
       <div style={{ fontSize: 40, animation: "spinRune 3s linear infinite" }} aria-hidden>ᛟ</div>
       <div style={{ fontSize: 12, textTransform: "uppercase" }}>Verbinde …</div>

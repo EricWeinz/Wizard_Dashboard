@@ -4,6 +4,7 @@ import { useOnlineStore } from "./store.js";
 import { MAX_NAME_LENGTH } from "./rules.js";
 import { textStyle, trapTab } from "./ui.jsx";
 import { themeIcon } from "../lib/theme.js";
+import ThemeLogo from "../components/ThemeLogo.jsx";
 
 /**
  * Beitritts-Dialog nach dem Scannen des QR-Codes bzw. Öffnen eines
@@ -49,12 +50,12 @@ export default function JoinPrompt({ code, onClose }) {
           color: "rgb(var(--ink) / 0.5)", fontSize: 16, cursor: "pointer", minWidth: 40, minHeight: 40,
         }}>✕</button>
         <div style={{ textAlign: "center", marginBottom: 18 }}>
-          <div aria-hidden style={{ fontSize: 40, filter: "drop-shadow(0 0 16px rgb(var(--accent) / 0.4))" }}>{themeIcon()}</div>
-          <h2 id={titleId} style={{ margin: "8px 0 0", fontFamily: "'Cinzel', serif", fontSize: 20, color: "rgb(var(--soft))", letterSpacing: 1 }}>
+          <div aria-hidden style={{ fontSize: 40, filter: "drop-shadow(0 0 16px rgb(var(--accent) / 0.4))" }}><ThemeLogo height={56} style={{ margin: "0 auto" }} fallback={themeIcon()} /></div>
+          <h2 id={titleId} style={{ margin: "8px 0 0", fontFamily: "var(--font-label)", fontSize: 20, color: "rgb(var(--soft))", letterSpacing: 1 }}>
             Du wurdest eingeladen!
           </h2>
           <p style={{ ...textStyle, marginTop: 6 }}>
-            Sitzung <span style={{ fontFamily: "'Cinzel', serif", fontWeight: 700, letterSpacing: 3, color: "rgb(var(--ink))" }}>{code}</span>
+            Sitzung <span style={{ fontFamily: "var(--font-label)", fontWeight: 700, letterSpacing: 3, color: "rgb(var(--ink))" }}>{code}</span>
           </p>
         </div>
 

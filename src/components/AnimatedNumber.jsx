@@ -35,7 +35,7 @@ export default function AnimatedNumber({ value, color, size = 30, glow = false, 
 
   return (
     <span style={{
-      fontSize: size, fontWeight: 700, color, fontFamily: "'Cinzel', serif", lineHeight: 1,
+      fontSize: size, fontWeight: 700, color, fontFamily: "var(--font-label)", lineHeight: 1,
       filter: glow ? `drop-shadow(0 0 6px ${glowColor})` : "none",
       transition: "color 0.3s",
     }}>{display}</span>

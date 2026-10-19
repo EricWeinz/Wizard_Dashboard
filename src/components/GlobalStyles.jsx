@@ -9,7 +9,7 @@ export default function GlobalStyles() {
 }
 
 const CSS = `
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@700;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@700;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Oswald:wght@500;600;700&display=swap');
 
 ${themeCss()}
 
@@ -61,7 +61,7 @@ ${themeCss()}
           padding: 14px 32px; border-radius: 14px; border: none;
           background: linear-gradient(135deg, rgb(var(--btn-a)) 0%, rgb(var(--btn-b)) 50%, rgb(var(--btn-c)) 100%);
           color: rgb(var(--on-accent)); font-size: 14px; font-weight: 600; cursor: pointer;
-          font-family: 'Cinzel', serif; letter-spacing: 2px; text-transform: uppercase;
+          font-family: var(--font-label); letter-spacing: 2px; text-transform: uppercase;
           box-shadow: 0 4px 24px rgb(var(--btn-a) / 0.35);
           transition: all 0.3s;
         }
@@ -99,7 +99,7 @@ ${themeCss()}
         }
         .magic-label {
           display: block; font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
-          color: rgb(var(--accent) / 0.5); margin-bottom: 14px; font-family: "Cinzel", serif;
+          color: rgb(var(--accent) / 0.5); margin-bottom: 14px; font-family: var(--font-label);
         }
         .magic-field {
           width: 100%; padding: 13px 18px; border-radius: 12px;
@@ -125,6 +125,27 @@ ${themeCss()}
         }
         .magic-chip:hover:not(:disabled) { border-color: rgb(var(--accent) / 0.45); color: rgb(var(--ink)); }
 
+        /* ── Dynamo: sportliche Titel, Fan-Streifen wie im Wappen, Schal unter der Kopfzeile ── */
+        :root[data-theme="dynamo"] .brand-title { text-transform: uppercase; letter-spacing: 0.06em; }
+        :root[data-theme="dynamo"] .magic-card::before, :root[data-theme="dynamo"] .theme-stripe::before {
+          content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+          width: 150px; height: 6px; border-radius: 0 0 3px 3px; pointer-events: none;
+          background:
+            repeating-linear-gradient(90deg, rgb(var(--accent)) 0 8px, transparent 8px 13px) left / 60px 100% no-repeat,
+            repeating-linear-gradient(90deg, rgb(var(--accent)) 0 8px, transparent 8px 13px) right / 60px 100% no-repeat;
+        }
+        :root[data-theme="dynamo"] .board-head::after {
+          content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 4px; pointer-events: none;
+          background: repeating-linear-gradient(-45deg, rgb(var(--accent)) 0 8px, rgb(var(--bg)) 8px 16px);
+        }
+        @keyframes floodSwayL { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(5deg); } }
+        @keyframes floodSwayR { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-5deg); } }
+        @keyframes floodFlicker { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+
+        @keyframes pickerGlow {
+          0%, 100% { box-shadow: 0 0 22px rgb(var(--accent) / 0.14), inset 0 1px 0 rgb(var(--ink) / 0.06); border-color: rgb(var(--accent) / 0.45); }
+          50% { box-shadow: 0 0 38px rgb(var(--accent) / 0.34), inset 0 1px 0 rgb(var(--ink) / 0.06); border-color: rgb(var(--accent) / 0.9); }
+        }
         @keyframes turnPulse {
           0%, 100% { box-shadow: 0 0 0 0 var(--turn-glow, transparent); }
           50% { box-shadow: 0 0 14px 2px var(--turn-glow, transparent); }

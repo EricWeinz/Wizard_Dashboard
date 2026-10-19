@@ -5,6 +5,7 @@ import { effectivePlayerOrder, isHostAway, startPlayerOf, MAX_NAME_LENGTH } from
 import { PLAYER_COLORS, ROUNDS_MAP, MIN_PLAYERS, MAX_PLAYERS } from "../lib/wizard.js";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
 import { ThemeMenu } from "../components/ThemePicker.jsx";
+import StartPlayerPicker from "../components/StartPlayerPicker.jsx";
 import { screenStyle, textStyle, OnlineTitle, copyText, inviteUrl } from "./ui.jsx";
 
 const smallBtn = { padding: "6px 9px", fontSize: 12, lineHeight: 1, minWidth: 40, minHeight: 40 };
@@ -40,7 +41,6 @@ export default function WaitingRoom() {
   const canStart = count >= MIN_PLAYERS && count <= MAX_PLAYERS;
   const starter = startPlayerOf(session);
   const starterName = session.players?.[starter]?.name ?? "?";
-  const drawStarter = () => setStartPlayer(order[crypto.getRandomValues(new Uint32Array(1))[0] % count]);
 
   // Nachbarn tauschen und die neue Reihenfolge speichern (nur Spielleitung)
   const move = (index, dir) => {
@@ -74,10 +74,25 @@ export default function WaitingRoom() {
 
   return (
     <div style={screenStyle}>
+      <ThemeMenu style={{ position: "absolute", top: 16, right: 16, zIndex: 5 }} />
       <OnlineTitle subtitle="Warteraum" />
 
       <div className="magic-card" style={{ padding: "26px 18px" }}>
-        <ThemeMenu style={{ position: "absolute", top: 10, right: 10, zIndex: 5 }} />
+        {/* Wer beginnt? Ganz oben, damit es niemand übersieht (Ansage reihum, Beginn rückt jede Runde weiter) */}
+        {count > 0 && (
+          <div style={{ marginBottom: 26 }}>
+            <StartPlayerPicker
+              names={order.map((id) => session.players[id].name)}
+              selected={Math.max(0, order.indexOf(starter))}
+              onSelect={(i) => setStartPlayer(order[i])}
+              readOnly={!isHost}
+              disabled={busy}
+              chosen={Boolean(session.startPlayerId)}
+              note={spectating ? "Legt die Spielleitung fest." : `${hostName} legt das als Spielleitung fest.`}
+            />
+          </div>
+        )}
+
         {/* Einladen */}
         <div style={{ textAlign: "center" }}>
           <span className="magic-label">◈ Mitspieler einladen ◈</span>
@@ -88,7 +103,7 @@ export default function WaitingRoom() {
               <span key={i} aria-hidden style={{
                 width: 42, height: 52, display: "flex", alignItems: "center", justifyContent: "center",
                 borderRadius: 10, border: "1.5px solid rgb(var(--accent) / 0.3)", background: "rgb(var(--accent) / 0.08)",
-                fontFamily: "'Cinzel', serif", fontSize: 24, fontWeight: 700, color: "rgb(var(--soft-2))",
+                fontFamily: "var(--font-label)", fontSize: 24, fontWeight: 700, color: "rgb(var(--soft-2))",
                 boxShadow: "0 0 16px rgb(var(--accent) / 0.12)",
               }}>{ch}</span>
             ))}
@@ -127,6 +142,7 @@ export default function WaitingRoom() {
                   {p.name}
                   {id === playerId && <span style={{ color: "rgb(var(--ink) / 0.4)", fontWeight: 400 }}> (du)</span>}
                 </span>
+                {id === starter && <span title="Sagt in Runde 1 zuerst an" aria-label="beginnt" style={{ fontSize: 13 }}>☝️</span>}
                 {p.guest && <span title="Spieler ohne Handy" aria-label="ohne Handy" style={{ fontSize: 13 }}>👤</span>}
                 {offline && <span style={{ fontSize: 10, color: "rgb(var(--ink) / 0.4)", border: "1px solid rgb(var(--ink) / 0.15)", borderRadius: 6, padding: "1px 5px" }}>offline</span>}
                 {id === session.hostId && <span title="Spielleitung" aria-label="Spielleitung" style={{ fontSize: 14 }}>🪄</span>}
@@ -171,37 +187,6 @@ export default function WaitingRoom() {
               </p>
             )}
           </>
-        )}
-
-        {/* Wer beginnt? Danach geht die Ansage reihum, der Beginn rückt jede Runde eins weiter */}
-        {count > 0 && (
-          <div style={{ marginTop: 20 }}>
-            <span className="magic-label">◈ Wer sagt zuerst an? ◈</span>
-            <div role="radiogroup" aria-label="Wer sagt in Runde 1 zuerst an?" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {order.map((id, i) => {
-                const selected = id === starter;
-                const color = PLAYER_COLORS[i] ?? PLAYER_COLORS[0];
-                return (
-                  <button key={id} type="button" role="radio" aria-checked={selected} disabled={!isHost || busy}
-                    onClick={() => setStartPlayer(id)} style={{
-                      minHeight: 40, padding: "8px 14px", borderRadius: 999, fontSize: 14, fontWeight: 600,
-                      fontFamily: "'DM Sans', sans-serif", cursor: isHost ? "pointer" : "default", transition: "all 0.2s",
-                      border: `1.5px solid ${selected ? color.accent : "rgb(var(--ink) / 0.08)"}`,
-                      background: selected ? color.dim : "rgb(var(--ink) / 0.03)",
-                      color: selected ? "rgb(var(--ink))" : "rgb(var(--ink) / 0.5)",
-                      boxShadow: selected ? `0 0 14px ${color.glow}` : "none", opacity: 1,
-                    }}>{session.players[id].name}</button>
-                );
-              })}
-              {isHost && count > 1 && (
-                <button type="button" onClick={drawStarter} disabled={busy} className="magic-btn-sm"
-                  aria-label="Zufällig auslosen, wer beginnt" style={{ minHeight: 40, borderRadius: 999, padding: "8px 14px" }}>🎲 Auslosen</button>
-              )}
-            </div>
-            <p style={{ ...textStyle, fontSize: 12, marginTop: 8 }}>
-              {starterName} beginnt, danach wird reihum angesagt. Jede Runde beginnt der Nächste; die Summe der Ansagen darf nie der Kartenzahl entsprechen.
-            </p>
-          </div>
         )}
 
         {/* Start / Warten */}

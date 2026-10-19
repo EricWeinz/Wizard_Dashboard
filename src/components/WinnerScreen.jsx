@@ -3,6 +3,8 @@ import { PLAYER_COLORS } from "../lib/wizard.js";
 import ConfirmDialog from "./ConfirmDialog.jsx";
 import Confetti from "./Confetti.jsx";
 import { ThemeMenu } from "./ThemePicker.jsx";
+import ThemeLogo from "./ThemeLogo.jsx";
+import { themeWords, useTheme } from "../lib/theme.js";
 
 /* ════════════════════════════════════════════
    WINNER SCREEN
@@ -19,6 +21,7 @@ export default function WinnerScreen({ playerNames, totals, correctPreds, comple
   const placeOf = (p) => sorted.findIndex(q => q.score === p.score);
   const sharedWin = sorted.length > 1 && sorted[1].score === sorted[0].score;
   const [showConfirm, setShowConfirm] = useState(false);
+  const words = themeWords(useTheme());
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", padding: 24, position: "relative", zIndex: 1, animation: "portalIn 0.8s ease-out backwards" }}>
@@ -32,21 +35,24 @@ export default function WinnerScreen({ playerNames, totals, correctPreds, comple
           background: "radial-gradient(circle, rgb(var(--gold) / 0.15), transparent 70%)",
           animation: "breathe 3s infinite ease-in-out",
         }} />
-        <div style={{ fontSize: 72, marginBottom: 8, position: "relative", filter: "drop-shadow(0 0 20px rgb(var(--gold) / 0.4))", animation: "floatY 3s infinite ease-in-out" }}>🧙‍♂️</div>
-        <h1 style={{
-          fontSize: "clamp(36px,7vw,56px)", fontFamily: "'Cinzel Decorative', cursive",
+        <div style={{ fontSize: 72, marginBottom: 8, position: "relative", filter: "drop-shadow(0 0 20px rgb(var(--gold) / 0.4))", animation: "floatY 3s infinite ease-in-out" }}>
+          <ThemeLogo height={110} style={{ margin: "0 auto 6px" }} fallback="🧙‍♂️" />
+        </div>
+        <h1 className="brand-title" style={{
+          fontSize: "clamp(36px,7vw,56px)", fontFamily: "var(--font-title)",
           background: "linear-gradient(135deg, rgb(var(--gold)) 0%, rgb(var(--gold-2)) 50%, rgb(var(--gold)) 100%)",
           backgroundSize: "200% 200%", animation: "shimmer 3s ease-in-out infinite",
           WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
           margin: 0, lineHeight: 1.2, position: "relative",
           filter: "drop-shadow(0 0 20px rgb(var(--gold) / 0.3))",
-        }}>Spielende!</h1>
+        }}>{words.winnerTitle}</h1>
         <p style={{ color: "rgb(var(--ink) / 0.4)", marginTop: 8, fontSize: 14, fontFamily: "'DM Sans', sans-serif", letterSpacing: 1 }}>
-          {sharedWin ? "✦ Gleichstand an der Spitze ✦" : "✦ Der mächtigste Spieler steht fest ✦"}
+          {`✦ ${sharedWin ? words.winnerTie : words.winnerSub} ✦`}
         </p>
       </div>
 
-      <div style={{
+      <div className="theme-stripe" style={{
+        position: "relative",
         background: "rgb(var(--s-card) / 0.8)", border: "1px solid rgb(var(--gold) / 0.15)", borderRadius: 24,
         padding: "32px 36px", maxWidth: 460, width: "100%", backdropFilter: "blur(20px)",
         boxShadow: "0 0 60px rgb(var(--gold) / 0.06)",
@@ -71,7 +77,7 @@ export default function WinnerScreen({ playerNames, totals, correctPreds, comple
             </div>
             <span style={{
               fontSize: rank === 0 ? 28 : 20, fontWeight: 700, color: PLAYER_COLORS[p.idx].accent,
-              fontFamily: "'Cinzel', serif",
+              fontFamily: "var(--font-label)",
               filter: rank === 0 ? `drop-shadow(0 0 8px ${PLAYER_COLORS[p.idx].glow})` : "none",
             }}>{p.score}</span>
           </div>

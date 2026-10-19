@@ -4,6 +4,7 @@ import AnimatedNumber from "./AnimatedNumber.jsx";
 import ScoreChart from "./ScoreChart.jsx";
 import MagicInput, { MagicValue } from "./MagicInput.jsx";
 import { ThemeMenu } from "./ThemePicker.jsx";
+import ThemeLogo from "./ThemeLogo.jsx";
 
 const ALWAYS = () => true;
 
@@ -105,7 +106,7 @@ export default function GameBoard({
   return (
     <div style={{ minHeight: "100vh", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", animation: "portalIn 0.6s ease-out backwards" }}>
       {/* Header */}
-      <div style={{
+      <div className="board-head" style={{
         padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between",
         flexWrap: "wrap", gap: 8,
         borderBottom: "1px solid rgb(var(--ink) / 0.05)", background: "rgb(var(--s-head) / 0.9)",
@@ -113,8 +114,9 @@ export default function GameBoard({
         boxShadow: "0 4px 30px rgba(0,0,0,0.3)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <h1 style={{
-            fontSize: 18, fontFamily: "'Cinzel Decorative', cursive", margin: 0,
+          <ThemeLogo height={26} style={{ marginRight: -4, filter: "drop-shadow(0 0 8px rgb(var(--accent) / 0.3))" }} />
+          <h1 className="brand-title" style={{
+            fontSize: 18, fontFamily: "var(--font-title)", margin: 0,
             background: "linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent-2)))",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
             filter: "drop-shadow(0 0 8px rgb(var(--accent) / 0.2))",
@@ -249,7 +251,7 @@ export default function GameBoard({
                   <td style={{
                     padding: "7px 12px", fontSize: 14, fontWeight: 600,
                     color: isActive ? "rgb(var(--accent))" : isDone ? "rgb(var(--ink) / 0.2)" : "rgb(var(--ink) / 0.4)",
-                    borderBottom: "1px solid rgb(var(--ink) / 0.03)", whiteSpace: "nowrap", fontFamily: "'Cinzel', serif",
+                    borderBottom: "1px solid rgb(var(--ink) / 0.03)", whiteSpace: "nowrap", fontFamily: "var(--font-label)",
                     textShadow: isActive ? "0 0 8px rgb(var(--accent) / 0.3)" : "none",
                   }}>
                     {isActive && <span style={{ marginRight: 4, fontSize: 8, verticalAlign: "middle", animation: "breathe 1.5s infinite" }}>✦</span>}
@@ -353,7 +355,7 @@ export default function GameBoard({
                     borderBottom: "1px solid rgb(var(--ink) / 0.03)", whiteSpace: "nowrap",
                   }}>
                     <div style={{
-                      fontSize: 14, fontWeight: 600, fontFamily: "'Cinzel', serif", lineHeight: 1.1,
+                      fontSize: 14, fontWeight: 600, fontFamily: "var(--font-label)", lineHeight: 1.1,
                       color: isActive ? "rgb(var(--accent))" : isDone ? "rgb(var(--ink) / 0.25)" : "rgb(var(--ink) / 0.45)",
                       textShadow: isActive ? "0 0 8px rgb(var(--accent) / 0.3)" : "none",
                     }}>{ri + 1}</div>

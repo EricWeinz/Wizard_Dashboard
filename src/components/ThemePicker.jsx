@@ -15,6 +15,13 @@ function Swatch({ colors, size = 12 }) {
   );
 }
 
+/** Symbol eines Designs in der Auswahl: kleines Wappen, falls vorhanden, sonst das Emoji. */
+function ThemeBadge({ theme, size }) {
+  const src = theme.favicon ?? theme.logo;
+  if (src) return <img src={src} alt="" aria-hidden draggable={false} style={{ height: size + 4, width: "auto", display: "block" }} />;
+  return <span aria-hidden style={{ fontSize: size }}>{theme.icon}</span>;
+}
+
 /** Raster aller Designs (Startseite) – wirkt sofort und wird im Browser gemerkt. */
 export default function ThemePicker() {
   const theme = useTheme();
@@ -33,7 +40,7 @@ export default function ThemePicker() {
               boxShadow: active ? "0 0 18px rgb(var(--accent) / 0.25)" : "none", transition: "all 0.25s",
             }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span aria-hidden style={{ fontSize: 15 }}>{t.icon}</span>
+                <ThemeBadge theme={t} size={15} />
                 <Swatch colors={t.swatch} />
               </span>
               <span style={{ fontSize: 12, fontWeight: 600, color: active ? "rgb(var(--ink))" : "rgb(var(--ink) / 0.6)" }}>{t.label}</span>
@@ -49,10 +56,20 @@ export default function ThemePicker() {
  * Kompaktes Design-Menü (🎨) für Kopfzeilen und Karten: öffnet eine kleine
  * Liste, schließt bei Klick daneben oder mit Escape – wie beim Kniffel Dashboard.
  */
+const MENU_WIDTH = 210;
+
 export function ThemeMenu({ style }) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
+  const [alignLeft, setAlignLeft] = useState(false);
   const ref = useRef(null);
+
+  // Steht der Knopf weit links (z. B. umgebrochene Kopfzeile am Handy), klappt das Menü nach rechts auf
+  const toggle = () => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (rect) setAlignLeft(rect.right - MENU_WIDTH < 8);
+    setOpen((v) => !v);
+  };
 
   useEffect(() => {
     if (!open) return undefined;
@@ -68,11 +85,12 @@ export function ThemeMenu({ style }) {
 
   return (
     <div ref={ref} style={{ position: "relative", ...style }}>
-      <button onClick={() => setOpen((v) => !v)} className="magic-btn-sm" aria-haspopup="menu" aria-expanded={open}
+      <button onClick={toggle} className="magic-btn-sm" aria-haspopup="menu" aria-expanded={open}
         aria-label="Farbdesign ändern" title="Farbdesign ändern">🎨</button>
       {open && (
         <div role="menu" aria-label="Farbdesign" style={{
-          position: "absolute", right: 0, top: "calc(100% + 8px)", zIndex: 60, width: 210, maxHeight: "70vh", overflowY: "auto",
+          position: "absolute", ...(alignLeft ? { left: 0 } : { right: 0 }), top: "calc(100% + 8px)", zIndex: 60,
+          width: MENU_WIDTH, maxWidth: "calc(100vw - 16px)", maxHeight: "70vh", overflowY: "auto",
           padding: 6, borderRadius: 16, background: "rgb(var(--s-dialog) / 0.98)", border: "1px solid rgb(var(--accent) / 0.25)",
           boxShadow: "0 12px 40px rgba(0,0,0,0.45)", animation: "fadeIn 0.15s ease-out", fontFamily: "'DM Sans', sans-serif",
         }}>
@@ -86,7 +104,7 @@ export function ThemeMenu({ style }) {
                   border: `1px solid ${active ? "rgb(var(--accent) / 0.5)" : "transparent"}`,
                   background: active ? "rgb(var(--accent) / 0.12)" : "transparent", color: "rgb(var(--ink) / 0.85)",
                 }}>
-                <span aria-hidden>{t.icon}</span>
+                <ThemeBadge theme={t} size={13} />
                 <span style={{ flex: 1 }}>{t.label}</span>
                 <Swatch colors={t.swatch} size={10} />
                 {active && <span aria-hidden style={{ color: "rgb(var(--accent))" }}>✓</span>}

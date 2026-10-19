@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { DEFAULT_PLAYER_COLORS, makePlayerColors, setPlayerColors } from "./wizard.js";
+import { DEFAULT_PLAYER_COLORS, makePlayerColors, setPlayerColors, RUNES, MAGIC_SYMBOLS } from "./wizard.js";
 
 /* ════════════════════════════════════════════
    FARBDESIGNS
@@ -12,6 +12,8 @@ import { DEFAULT_PLAYER_COLORS, makePlayerColors, setPlayerColors } from "./wiza
 
 /** Standardwerte = das ursprüngliche Wizard-Design („Arkan“). */
 const BASE = {
+  "font-title": "'Cinzel Decorative', cursive", // große Titel („Wizard“, „Spielende!“)
+  "font-label": "'Cinzel', serif",              // Überschriften, Beschriftungen, Hauptknöpfe
   "ink": "255 255 255",          // Schrift, feine Linien, helle Flächen-Tönung
   "on-accent": "255 255 255",    // Schrift auf farbigen Knöpfen
   "accent": "192 132 252",       // Hauptakzent (Violett)
@@ -56,6 +58,9 @@ const PALETTES = {
   druide: makePlayerColors(["#4ade80", "#facc15", "#fb923c", "#38bdf8", "#f472b6", "#c4b5fd"]),
   gold: makePlayerColors(["#eab308", "#e5e7eb", "#f97316", "#60a5fa", "#34d399", "#f472b6"]),
   neon: makePlayerColors(["#f472b6", "#22d3ee", "#a3e635", "#facc15", "#fb923c", "#c084fc"]),
+  // Schwarz-Gelb: Trikot-Gelb, Weiß, Rasengrün, Himmelblau, Orange, Violett – bewusst ohne Rot,
+  // denn Rot steht in der Tabelle für Minuspunkte (das Wappen-Rot steckt in Akzenten und Konfetti)
+  dynamo: makePlayerColors(["#fcd010", "#f5f5f0", "#4ade80", "#60a5fa", "#fb923c", "#c084fc"]),
   // Helles Pergament: kräftige „Tinten“-Töne statt Pastell
   pergament: makePlayerColors(["#7e22ce", "#1d4ed8", "#c2410c", "#047857", "#be123c", "#a16207"], 1.6),
 };
@@ -142,6 +147,29 @@ export const THEMES = [
       "orb-blue": "180 120 60", "orb-pink": "190 110 80",
     },
   },
+  {
+    // Schwarz-Gelb wie SG Dynamo Dresden (Farben aus dem Wappen): Wappen in Kopf und Favicon,
+    // Flutlicht statt Polarlicht, Fußball und Waben statt Runen, sportliche Schrift, „Abpfiff!“
+    id: "dynamo", label: "Dynamo", icon: "⚽", swatch: ["#070706", "#fcd010", "#a81018"],
+    logo: "/dynamo-dresden.webp", favicon: "/dynamo-dresden-icon.png", stadium: true,
+    glyphs: { ring: ["⬢", "⬡"], floaters: ["⚽", "⬢", "⬡"], symbols: ["⬢", "⬡", "⬢", "⚽", "⬢", "⬡", "⬢"] },
+    confetti: ["#fcd010", "#fcd010", "#f3ac26", "#ffffff", "#a81018"],
+    words: { winnerTitle: "Abpfiff!", winnerSub: "Der Matchwinner steht fest", winnerTie: "Unentschieden an der Spitze" },
+    tokens: {
+      "font-title": "'Oswald', 'Arial Narrow', sans-serif", "font-label": "'Oswald', 'Arial Narrow', sans-serif",
+      "on-accent": "12 12 10",
+      "accent": "252 208 16", "accent-mid": "243 172 38", "accent-2": "255 250 235",
+      "btn-a": "252 208 16", "btn-b": "255 224 72", "btn-c": "243 172 38",
+      "soft": "255 236 160", "soft-2": "255 248 222", "soft-3": "252 220 100", "soft-blue": "255 255 255",
+      "gold": "252 208 16", "gold-2": "243 172 38", "gold-text": "255 232 140",
+      "danger": "222 38 52", "danger-2": "248 96 104", "danger-deep": "168 16 24",
+      "success": "74 222 128",
+      "bg": "7 7 6", "bg-mid": "18 17 13", "glow-1": "130 100 8", "glow-2": "110 12 18",
+      "s-card": "21 20 15", "s-head": "13 13 10", "s-dialog": "26 24 17", "s-bar": "15 14 11",
+      "s-info": "32 28 12", "s-error": "44 10 12", "s-deep": "10 10 8",
+      "orb-blue": "252 208 16", "orb-pink": "168 16 24",
+    },
+  },
 ];
 
 const THEME_KEY = "wizard:theme";
@@ -183,6 +211,35 @@ export function themeIcon(id = currentTheme) {
   return byId(id).icon;
 }
 
+/** Vollständige Beschreibung eines Designs (unbekannte IDs = Standard). */
+export function themeOption(id = currentTheme) {
+  return byId(id);
+}
+
+/** Bild-Logo des Designs (z. B. Vereinswappen) oder null. */
+export function themeLogo(id = currentTheme) {
+  return byId(id).logo ?? null;
+}
+
+const DEFAULT_GLYPHS = { ring: RUNES, floaters: RUNES, symbols: MAGIC_SYMBOLS };
+/** Zierzeichen: `ring` (Kreise um Titel, Kartenecken), `floaters` (Hintergrund), `symbols` (Zeile unter Titeln). */
+export function themeGlyphs(id = currentTheme) {
+  return { ...DEFAULT_GLYPHS, ...(byId(id).glyphs ?? {}) };
+}
+
+/** Konfettifarben der Siegerehrung oder null (= Spielerfarben). */
+export function themeConfetti(id = currentTheme) {
+  return byId(id).confetti ?? null;
+}
+
+const DEFAULT_WORDS = {
+  winnerTitle: "Spielende!", winnerSub: "Der mächtigste Spieler steht fest", winnerTie: "Gleichstand an der Spitze",
+};
+/** Texte, die ein Design anders formuliert (z. B. „Abpfiff!“ statt „Spielende!“). */
+export function themeWords(id = currentTheme) {
+  return { ...DEFAULT_WORDS, ...(byId(id).words ?? {}) };
+}
+
 /** Design anwenden: data-theme setzen, speichern, Spielerfarben, Browserleiste, Favicon. */
 export function applyTheme(id) {
   const theme = byId(id);
@@ -193,7 +250,8 @@ export function applyTheme(id) {
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme.swatch[0]);
   document.querySelector('link[rel="icon"]')?.setAttribute(
     "href",
-    `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>${theme.icon}</text></svg>`,
+    theme.favicon ?? theme.logo ??
+      `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>${theme.icon}</text></svg>`,
   );
   listeners.forEach((notify) => notify());
 }

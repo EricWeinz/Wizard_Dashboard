@@ -47,7 +47,7 @@ export default function OnlineLobby({ onBack }) {
           <input aria-label="Sitzungscode" className="magic-field" value={joinCode}
             onChange={(e) => setJoinCode(normalizeCode(e.target.value).slice(0, CODE_LENGTH))}
             placeholder="CODE" autoCapitalize="characters" autoComplete="off" autoCorrect="off" spellCheck={false}
-            style={{ flex: 1, minWidth: 0, textAlign: "center", letterSpacing: 6, fontFamily: "'Cinzel', serif", fontWeight: 700, textTransform: "uppercase" }} />
+            style={{ flex: 1, minWidth: 0, textAlign: "center", letterSpacing: 6, fontFamily: "var(--font-label)", fontWeight: 700, textTransform: "uppercase" }} />
           <button type="submit" className="magic-btn-secondary" disabled={busy || !codeReady} style={{ padding: "12px 16px", flexShrink: 0 }}>
             Beitreten
           </button>

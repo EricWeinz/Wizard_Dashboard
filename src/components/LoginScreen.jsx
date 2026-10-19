@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { RUNES } from "../lib/wizard.js";
 import { inviteCodeFromUrl } from "../online/keys.js";
-import { themeIcon, useTheme } from "../lib/theme.js";
+import { themeIcon, themeGlyphs, useTheme } from "../lib/theme.js";
+import ThemeLogo from "./ThemeLogo.jsx";
 
 const ACCESS_KEY = "wizard";
 /** localStorage-Schlüssel: Passwort wurde in diesem Browser schon einmal eingegeben. */
@@ -21,6 +21,7 @@ export default function LoginScreen({ onLogin }) {
   const [unlocking, setUnlocking] = useState(false);
   const [inviteCode] = useState(inviteCodeFromUrl);
   const theme = useTheme();
+  const { ring } = themeGlyphs(theme);
 
   const handleSubmit = () => {
     if (password === ACCESS_KEY) {
@@ -56,7 +57,7 @@ export default function LoginScreen({ onLogin }) {
           return <div key={i} style={{
             position: "absolute", left: `${50 + Math.cos(a) * 50}%`, top: `${50 + Math.sin(a) * 50}%`,
             transform: "translate(-50%,-50%)", fontSize: 14, color: "rgb(var(--accent) / 0.1)",
-          }}>{RUNES[i]}</div>;
+          }}>{ring[i % ring.length]}</div>;
         })}
       </div>
       {/* Inner circle */}
@@ -68,10 +69,10 @@ export default function LoginScreen({ onLogin }) {
 
       <div style={{ position: "relative", textAlign: "center", marginBottom: 48 }}>
         <div style={{ fontSize: 56, marginBottom: 16, filter: "drop-shadow(0 0 24px rgb(var(--accent) / 0.4))", animation: "floatY 4s infinite ease-in-out" }}>
-          {themeIcon(theme)}
+          <ThemeLogo height={84} style={{ margin: "0 auto" }} fallback={themeIcon(theme)} />
         </div>
-        <h1 style={{
-          fontSize: "clamp(40px, 7vw, 64px)", fontFamily: "'Cinzel Decorative', cursive",
+        <h1 className="brand-title" style={{
+          fontSize: "clamp(40px, 7vw, 64px)", fontFamily: "var(--font-title)",
           background: "linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--accent-mid)) 50%, rgb(var(--accent-2)) 100%)",
           backgroundSize: "200% 200%", animation: "shimmer 4s ease-in-out infinite",
           WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
@@ -80,7 +81,7 @@ export default function LoginScreen({ onLogin }) {
         }}>Wizard</h1>
         <div style={{
           fontSize: 11, letterSpacing: 5, textTransform: "uppercase",
-          color: "rgb(var(--accent) / 0.4)", marginTop: 10, fontFamily: "'Cinzel', serif",
+          color: "rgb(var(--accent) / 0.4)", marginTop: 10, fontFamily: "var(--font-label)",
         }}>✦ Score Tracker ✦</div>
       </div>
 
@@ -97,7 +98,7 @@ export default function LoginScreen({ onLogin }) {
 
         <label style={{
           display: "block", fontSize: 11, letterSpacing: 3, textTransform: "uppercase",
-          color: "rgb(var(--accent) / 0.45)", marginBottom: 14, fontFamily: "'Cinzel', serif",
+          color: "rgb(var(--accent) / 0.45)", marginBottom: 14, fontFamily: "var(--font-label)",
           textAlign: "center",
         }}>◈ Zugang ◈</label>
 
@@ -135,7 +136,7 @@ export default function LoginScreen({ onLogin }) {
           width: "100%", padding: "14px 0", borderRadius: 14, border: "none",
           background: "linear-gradient(135deg, rgb(var(--btn-a)) 0%, rgb(var(--btn-b)) 50%, rgb(var(--btn-c)) 100%)",
           color: "rgb(var(--on-accent))", fontSize: 15, fontWeight: 600, cursor: "pointer",
-          fontFamily: "'Cinzel', serif", letterSpacing: 3, textTransform: "uppercase",
+          fontFamily: "var(--font-label)", letterSpacing: 3, textTransform: "uppercase",
           boxShadow: "0 4px 24px rgb(var(--btn-a) / 0.35), inset 0 1px 0 rgb(var(--ink) / 0.1)",
           transition: "all 0.3s",
         }}
