@@ -1,0 +1,19 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+# Umgebungsvariablen mit Firebase-Schlüsseln niemals committen
+.env
+.env.*
+!.env.example
+
+# Private Setup-Anleitung (Firebase-Schritte, Regeln, Datenmodell) – bleibt lokal
+SETUP_PRIVAT.md
+
+# Editor / System
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.log

@@ -1,0 +1,404 @@
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { PLAYER_COLORS, cardsForRound, calcPoints, computeGameStats } from "../lib/wizard.js";
+import AnimatedNumber from "./AnimatedNumber.jsx";
+import ScoreChart from "./ScoreChart.jsx";
+import MagicInput, { MagicValue } from "./MagicInput.jsx";
+
+const ALWAYS = () => true;
+
+/**
+ * Der Spielblock: Kopfzeile, Punktekarten, Verlaufs-Chart und Tabelle.
+ * Rein darstellend – woher die Daten kommen (lokaler State oder Firebase) und
+ * wer welche Zelle bearbeiten darf, bestimmen LocalGame bzw. der Online-Modus.
+ *
+ * data[pi][ri] = { pred, act } als Strings ("" = leer)
+ * canEdit(pi, ri)            – false: Zelle wird nur angezeigt
+ * onCellChange(pi, ri, field, value)
+ * leadingActions / trailingActions – Buttons links/rechts vom 📈-Button
+ * headerExtra                – Zusatz neben der Rundenanzeige (z. B. Verbindungsstatus)
+ * renderPlayerBadge(pi)      – kleines Symbol neben dem Namen in der Punktekarte
+ * highlightPlayer            – Index der eigenen Spalte (Online) oder null
+ * bottomPadding              – Platz für eine fixierte Leiste am unteren Rand
+ * showChart / onShowChartChange – optional von außen gesteuert (bleibt dann beim
+ *                              Wechsel zur Siegerehrung erhalten)
+ * currentRound               – optional: hervorgehobene Runde (Standard: erste unvollständige)
+ * onCellClick(pi, ri, field) – optional: bearbeitbare Zellen werden zu Knöpfen (Online:
+ *                              Zahlenauswahl statt Tippen) statt Eingabefeldern;
+ *                              im Layout "compact" mit field = null (beide Werte)
+ * layout                     – "wide" (Standard: je Spieler Ansage | Stiche | Σ) oder
+ *                              "compact" (Handy: eine Spalte je Spieler, „2/3“ + Summe)
+ * scrollBlock                – Ausrichtung beim Mitscrollen zur aktuellen Runde
+ *                              ("center" wie bisher, "nearest" ruhiger, null = nie)
+ */
+export default function GameBoard({
+  playerNames, data, totalRounds,
+  canEdit = ALWAYS, onCellChange,
+  leadingActions = null, trailingActions = null, headerExtra = null,
+  renderPlayerBadge = null, highlightPlayer = null, bottomPadding = 0,
+  showChart: showChartProp, onShowChartChange,
+  currentRound = null, onCellClick = null, layout = "wide", scrollBlock = "center",
+}) {
+  const playerCount = playerNames.length;
+  const stats = useMemo(() => computeGameStats(data, playerCount, totalRounds), [data, playerCount, totalRounds]);
+  const { roundComplete, completedRounds, totals, maxTotal, correctPreds, actSumWarn, predSumNote } = stats;
+  const activeRound = currentRound ?? stats.activeRound;
+  const getRunningTotal = stats.runningTotal;
+  const [showChartOwn, setShowChartOwn] = useState(false);
+  const showChart = showChartProp ?? showChartOwn;
+  const setShowChart = onShowChartChange ?? setShowChartOwn;
+  const [hoveredRow, setHoveredRow] = useState(null);
+  const activeRowRef = useRef(null);
+
+  // Zur aktuellen Runde mitscrollen – frühestens nach der Einblend-Animation (portalIn, 0,6 s):
+  // währenddessen ist der Screen noch verkleinert und das Ziel läge daneben. Ein Frame
+  // später ist außerdem der Platz für eine fixierte Leiste (bottomPadding) im Layout.
+  const mountedAt = useRef(Date.now());
+  useEffect(() => {
+    if (!scrollBlock) return undefined;
+    const wait = Math.max(0, 650 - (Date.now() - mountedAt.current));
+    let frame = 0;
+    const timer = setTimeout(() => {
+      frame = requestAnimationFrame(() => activeRowRef.current?.scrollIntoView({ behavior: "smooth", block: scrollBlock }));
+    }, wait);
+    return () => { clearTimeout(timer); cancelAnimationFrame(frame); };
+  }, [activeRound]);
+
+  /* Feature 4: Smart Tab/Enter navigation */
+  const buildInputOrder = useCallback(() => {
+    // Order: for each round, pred for all players, then act for all players
+    const order = [];
+    for (let ri = 0; ri < totalRounds; ri++) {
+      for (let pi = 0; pi < playerCount; pi++) order.push(`pred-${pi}-${ri}`);
+      for (let pi = 0; pi < playerCount; pi++) order.push(`act-${pi}-${ri}`);
+    }
+    return order;
+  }, [totalRounds, playerCount]);
+
+  const handleNavigate = useCallback((currentId) => {
+    const order = buildInputOrder();
+    const idx = order.indexOf(currentId);
+    // Find next empty field starting from current position
+    for (let offset = 1; offset <= order.length; offset++) {
+      const nextIdx = (idx + offset) % order.length;
+      const nextId = order[nextIdx];
+      const [field, pi, ri] = nextId.split("-");
+      const val = data[parseInt(pi)][parseInt(ri)][field];
+      if (val === "") {
+        const el = document.querySelector(`[data-input-id="${nextId}"]`);
+        if (el) { el.focus(); return; }
+      }
+    }
+    // If all filled, just go to literal next
+    const nextIdx = (idx + 1) % order.length;
+    const el = document.querySelector(`[data-input-id="${order[nextIdx]}"]`);
+    if (el) el.focus();
+  }, [data, buildInputOrder]);
+
+  return (
+    <div style={{ minHeight: "100vh", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", animation: "portalIn 0.6s ease-out backwards" }}>
+      {/* Header */}
+      <div style={{
+        padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexWrap: "wrap", gap: 8,
+        borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(8,5,20,0.9)",
+        backdropFilter: "blur(24px)", position: "sticky", top: 0, zIndex: 10,
+        boxShadow: "0 4px 30px rgba(0,0,0,0.3)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <h1 style={{
+            fontSize: 18, fontFamily: "'Cinzel Decorative', cursive", margin: 0,
+            background: "linear-gradient(135deg, #c084fc, #60a5fa)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            filter: "drop-shadow(0 0 8px rgba(192,132,252,0.2))",
+          }}>Wizard</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, fontFamily: "'DM Sans', sans-serif" }}>
+              Runde {Math.min(activeRound + 1, totalRounds)}/{totalRounds}
+            </span>
+            <div style={{ width: 80, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+              <div style={{
+                height: "100%", borderRadius: 2, transition: "width 0.5s ease",
+                width: `${(completedRounds / totalRounds) * 100}%`,
+                background: "linear-gradient(90deg, #c084fc, #818cf8, #60a5fa)",
+                boxShadow: "0 0 8px rgba(192,132,252,0.4)",
+              }} />
+            </div>
+            {headerExtra}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          {leadingActions}
+          <button onClick={() => setShowChart(c => !c)} aria-label="Punkteverlauf ein-/ausblenden" aria-pressed={showChart} className="magic-btn-sm" style={{ borderColor: showChart ? "rgba(192,132,252,0.3)" : undefined, color: showChart ? "#c084fc" : undefined }}>📈</button>
+          {trailingActions}
+        </div>
+      </div>
+
+      {/* Score Cards */}
+      <div style={{ padding: "14px 20px 6px", display: "flex", gap: 8, overflowX: "auto", flexShrink: 0 }}>
+        {playerNames.map((name, i) => {
+          const isLeader = totals[i] === maxTotal && totals[i] !== 0;
+          const pct = completedRounds > 0 ? Math.round((correctPreds[i] / completedRounds) * 100) : 0;
+          return (
+            <div key={i} style={{
+              flex: 1, minWidth: 125, padding: "14px 16px", borderRadius: 16,
+              background: `linear-gradient(135deg, ${PLAYER_COLORS[i].bg}, rgba(12,8,28,0.5))`,
+              border: `1.5px solid ${isLeader ? PLAYER_COLORS[i].accent : "rgba(255,255,255,0.04)"}`,
+              boxShadow: isLeader ? `0 0 30px ${PLAYER_COLORS[i].glow}, inset 0 0 20px ${PLAYER_COLORS[i].bg}` : "none",
+              transition: "all 0.5s ease", position: "relative", overflow: "hidden",
+            }}>
+              {isLeader && <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 0%, ${PLAYER_COLORS[i].dim}, transparent 70%)`, pointerEvents: "none" }} />}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, position: "relative" }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: "50%", background: PLAYER_COLORS[i].accent, flexShrink: 0,
+                  boxShadow: `0 0 8px ${PLAYER_COLORS[i].glow}`,
+                  animation: isLeader ? "breathe 2s infinite ease-in-out" : "none",
+                }} />
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: renderPlayerBadge ? "3em" : undefined }}>{name}</span>
+                {renderPlayerBadge && renderPlayerBadge(i)}
+                {isLeader && <span style={{ fontSize: 14, marginLeft: "auto", filter: "drop-shadow(0 0 4px rgba(251,191,36,0.5))" }}>👑</span>}
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 20, position: "relative" }}>
+                <AnimatedNumber value={totals[i]} color={PLAYER_COLORS[i].accent} size={30} glow={isLeader} glowColor={PLAYER_COLORS[i].glow} />
+                {data[i][activeRound].pred !== "" && (
+                  <div style={{
+                    fontSize: 17, fontWeight: 700, color: "rgba(255,255,255,0.6)",
+                    fontFamily: "'DM Sans', sans-serif",
+                    background: "rgba(255,255,255,0.07)", borderRadius: 8,
+                    padding: "3px 10px", lineHeight: 1.4,
+                    border: "1px solid rgba(255,255,255,0.1)",
+                  }}>
+                    <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", marginRight: 4 }}>Ans.</span>
+                    {data[i][activeRound].pred}
+                  </div>
+                )}
+              </div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginTop: 4, fontFamily: "'DM Sans', sans-serif", position: "relative" }}>
+                {correctPreds[i]}/{completedRounds} ✓ · {pct}%
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Chart */}
+      {showChart && (
+        <div style={{ margin: "8px 20px", padding: 16, borderRadius: 16, background: "rgba(12,8,28,0.7)", border: "1px solid rgba(255,255,255,0.05)", backdropFilter: "blur(12px)", animation: "fadeSlideIn 0.3s ease-out", boxShadow: "inset 0 0 40px rgba(139,92,246,0.03)" }}>
+          <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
+            {playerNames.map((n, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 12, height: 3, borderRadius: 2, background: PLAYER_COLORS[i].accent, boxShadow: `0 0 4px ${PLAYER_COLORS[i].glow}` }} />
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontFamily: "'DM Sans', sans-serif" }}>{n}</span>
+              </div>
+            ))}
+          </div>
+          <ScoreChart data={data} playerCount={playerCount} playerNames={playerNames} totalRounds={totalRounds} />
+        </div>
+      )}
+
+      {/* Table */}
+      {layout === "compact" ? renderCompactTable() : (
+      <div style={{ flex: 1, overflow: "auto", padding: `8px 20px ${32 + bottomPadding}px` }}>
+        <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, fontFamily: "'DM Sans', sans-serif" }}>
+          <thead>
+            <tr>
+              <th className="th1">Runde</th>
+              {playerNames.map((name, i) => (
+                <th key={i} colSpan={3} className="th1" style={{ textAlign: "center", color: PLAYER_COLORS[i].accent, fontWeight: 600, fontSize: 13, borderBottom: `2px solid ${PLAYER_COLORS[i].accent}`, textShadow: `0 0 10px ${PLAYER_COLORS[i].glow}` }}>{name}{highlightPlayer === i && <span style={{ opacity: 0.55, fontWeight: 400, textTransform: "none" }}> · du</span>}</th>
+              ))}
+            </tr>
+            <tr>
+              <th className="th2" />
+              {playerNames.map((_, i) => (
+                <React.Fragment key={i}>
+                  <th className="th2">Ans.</th>
+                  <th className="th2">Stiche</th>
+                  <th className="th2">Σ</th>
+                </React.Fragment>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: totalRounds }, (_, ri) => {
+              const isActive = ri === activeRound;
+              const isDone = roundComplete(ri);
+              const cards = cardsForRound(ri, totalRounds);
+              const actWarn = actSumWarn(ri);
+              const predNote = predSumNote(ri);
+              const isHovered = hoveredRow === ri;
+
+              return (
+                <tr key={ri} ref={isActive ? activeRowRef : null}
+                  onMouseEnter={() => setHoveredRow(ri)}
+                  onMouseLeave={() => setHoveredRow(null)}
+                  style={{
+                    background: isActive ? "rgba(192,132,252,0.04)" : isHovered ? "rgba(255,255,255,0.02)" : "transparent",
+                    transition: "background 0.25s",
+                    boxShadow: isActive ? "inset 0 0 30px rgba(192,132,252,0.03)" : isHovered ? "inset 0 0 20px rgba(255,255,255,0.01)" : "none",
+                  }}>
+                  <td style={{
+                    padding: "7px 12px", fontSize: 14, fontWeight: 600,
+                    color: isActive ? "#c084fc" : isDone ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.4)",
+                    borderBottom: "1px solid rgba(255,255,255,0.03)", whiteSpace: "nowrap", fontFamily: "'Cinzel', serif",
+                    textShadow: isActive ? "0 0 8px rgba(192,132,252,0.3)" : "none",
+                  }}>
+                    {isActive && <span style={{ marginRight: 4, fontSize: 8, verticalAlign: "middle", animation: "breathe 1.5s infinite" }}>✦</span>}
+                    {ri + 1}
+                  </td>
+                  {Array.from({ length: playerCount }, (_, pi) => {
+                    const pts = calcPoints(data[pi][ri].pred, data[pi][ri].act);
+                    const runTotal = pts !== null ? getRunningTotal(pi, ri) : null;
+                    const isCorrect = pts !== null && data[pi][ri].pred === data[pi][ri].act;
+                    const cellDone = pts !== null;
+                    const doneBg = cellDone ? PLAYER_COLORS[pi].doneBg : "transparent";
+                    const editable = canEdit(pi, ri);
+                    const predLabel = `Ansage ${playerNames[pi]}, Runde ${ri + 1}: ${data[pi][ri].pred === "" ? "leer" : data[pi][ri].pred}`;
+                    const actLabel = `Stiche ${playerNames[pi]}, Runde ${ri + 1}: ${data[pi][ri].act === "" ? "leer" : data[pi][ri].act}`;
+                    return (
+                      <React.Fragment key={pi}>
+                        <td style={{ padding: "4px 2px", textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.03)", borderLeft: "1px solid rgba(255,255,255,0.02)", background: doneBg, transition: "background 0.4s" }}>
+                          {editable && onCellClick
+                            ? <MagicValue value={data[pi][ri].pred} warn={false} ariaLabel={predLabel} color={PLAYER_COLORS[pi].accent} onClick={() => onCellClick(pi, ri, "pred")} />
+                            : editable
+                            ? <MagicInput value={data[pi][ri].pred} onChange={v => onCellChange(pi, ri, "pred", v)} placeholder="–" color={PLAYER_COLORS[pi].accent} warn={false} inputId={`pred-${pi}-${ri}`} onNavigate={handleNavigate} ariaLabel={predLabel} />
+                            : <MagicValue value={data[pi][ri].pred} warn={false} ariaLabel={predLabel} />}
+                        </td>
+                        <td style={{ padding: "4px 2px", textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.03)", background: doneBg, transition: "background 0.4s" }}>
+                          {editable && onCellClick
+                            ? <MagicValue value={data[pi][ri].act} warn={actWarn === true} ariaLabel={actLabel} color={PLAYER_COLORS[pi].accent} onClick={() => onCellClick(pi, ri, "act")} />
+                            : editable
+                            ? <MagicInput value={data[pi][ri].act}
+                                onChange={v => onCellChange(pi, ri, "act", v)} placeholder="–"
+                                color={PLAYER_COLORS[pi].accent} warn={actWarn === true} inputId={`act-${pi}-${ri}`} onNavigate={handleNavigate} ariaLabel={actLabel} />
+                            : <MagicValue value={data[pi][ri].act} warn={actWarn === true} ariaLabel={actLabel} />}
+                        </td>
+                        <td style={{
+                          padding: "4px 6px", textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.03)",
+                          fontSize: 14, fontWeight: 700, fontFamily: "'DM Sans', sans-serif",
+                          color: runTotal === null ? "rgba(255,255,255,0.06)" : runTotal >= 0 ? PLAYER_COLORS[pi].accent : "#ef4444",
+                          textShadow: runTotal !== null && runTotal >= 0 ? `0 0 8px ${PLAYER_COLORS[pi].glow}` : "none",
+                          background: doneBg, transition: "background 0.4s",
+                        }}>
+                          {runTotal !== null ? (
+                            <div style={{ lineHeight: 1.1, animation: "fadeIn 0.3s ease-out" }}>
+                              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 2 }}>
+                                {runTotal}
+                                {isCorrect ? <span style={{ fontSize: 10, color: "#34d399", textShadow: "0 0 6px rgba(52,211,153,0.5)" }}>✓</span>
+                                  : <span style={{ fontSize: 9, color: "rgba(239,68,68,0.4)" }}>✗</span>}
+                              </span>
+                              <div style={{ fontSize: 10, fontWeight: 400, color: pts >= 0 ? "rgba(52,211,153,0.6)" : "rgba(239,68,68,0.5)" }}>{pts >= 0 ? "+" : ""}{pts}</div>
+                            </div>
+                          ) : <span style={{ opacity: 0.3 }}>·</span>}
+                        </td>
+                      </React.Fragment>
+                    );
+                  })}
+                  {actWarn === true && <td style={{ padding: "0 6px", fontSize: 9, color: "rgba(239,68,68,0.6)", whiteSpace: "nowrap", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>⚠ ≠{cards}</td>}
+                  {predNote && actWarn !== true && <td style={{ padding: "0 6px", fontSize: 9, color: "rgba(251,191,36,0.35)", whiteSpace: "nowrap", borderBottom: "1px solid rgba(255,255,255,0.03)" }}>💡 Σ={cards}</td>}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      )}
+    </div>
+  );
+
+  /* Handy-Layout: eine Spalte je Spieler – oben „Ansage/Stiche“, darunter die laufende Summe.
+     Passt auch mit 6 Spielern auf 390 px; die Rundenspalte bleibt beim Wischen stehen. */
+  function renderCompactTable() {
+    const stickyBg = "rgba(10,7,24,0.98)";
+    return (
+      <div style={{ flex: 1, overflow: "auto", padding: `8px 12px ${32 + bottomPadding}px` }}>
+        <table style={{ width: "100%", minWidth: 40 + playerCount * 50, tableLayout: "fixed", borderCollapse: "separate", borderSpacing: 0, fontFamily: "'DM Sans', sans-serif" }}>
+          <thead>
+            <tr>
+              <th className="th1" style={{ width: 40, left: 0, zIndex: 6, padding: "10px 2px", textAlign: "center" }} aria-label="Runde">R</th>
+              {playerNames.map((name, i) => (
+                <th key={i} className="th1" style={{
+                  textAlign: "center", padding: "8px 2px", fontSize: 11, letterSpacing: 0, textTransform: "none",
+                  color: PLAYER_COLORS[i].accent, fontWeight: 600, borderBottom: `2px solid ${PLAYER_COLORS[i].accent}`,
+                  textShadow: `0 0 10px ${PLAYER_COLORS[i].glow}`, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                }}>{name}{highlightPlayer === i && <span style={{ opacity: 0.55, fontWeight: 400 }}> · du</span>}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: totalRounds }, (_, ri) => {
+              const isActive = ri === activeRound;
+              const isDone = roundComplete(ri);
+              const cards = cardsForRound(ri, totalRounds);
+              const actWarn = actSumWarn(ri);
+              const predNote = predSumNote(ri);
+              return (
+                <tr key={ri} ref={isActive ? activeRowRef : null} style={{
+                  background: isActive ? "rgba(192,132,252,0.05)" : "transparent", transition: "background 0.25s",
+                }}>
+                  <td style={{
+                    position: "sticky", left: 0, zIndex: 2, background: stickyBg, padding: "4px 2px", textAlign: "center",
+                    borderBottom: "1px solid rgba(255,255,255,0.03)", whiteSpace: "nowrap",
+                  }}>
+                    <div style={{
+                      fontSize: 14, fontWeight: 600, fontFamily: "'Cinzel', serif", lineHeight: 1.1,
+                      color: isActive ? "#c084fc" : isDone ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.45)",
+                      textShadow: isActive ? "0 0 8px rgba(192,132,252,0.3)" : "none",
+                    }}>{ri + 1}</div>
+                    <div style={{ fontSize: 9, lineHeight: 1.2, color: actWarn === true ? "#f87171" : predNote ? "rgba(251,191,36,0.6)" : "rgba(255,255,255,0.22)" }}
+                      title={actWarn === true ? `Die Stiche ergeben zusammen nicht ${cards}` : predNote ? `Die Ansagen ergeben zusammen genau ${cards}` : `${cards} Karten`}>
+                      {actWarn === true ? `⚠≠${cards}` : predNote ? `Σ=${cards}` : `${cards} K.`}
+                    </div>
+                  </td>
+                  {Array.from({ length: playerCount }, (_, pi) => {
+                    const { pred, act } = data[pi][ri];
+                    const pts = calcPoints(pred, act);
+                    const runTotal = pts !== null ? getRunningTotal(pi, ri) : null;
+                    const isCorrect = pts !== null && pred === act;
+                    const editable = canEdit(pi, ri) && onCellClick;
+                    const label = `${playerNames[pi]}, Runde ${ri + 1}: Ansage ${pred === "" ? "leer" : pred}, Stiche ${act === "" ? "leer" : act}`;
+                    const content = (
+                      <>
+                        <span style={{ display: "block", fontSize: 14, fontWeight: 600, lineHeight: 1.2, whiteSpace: "nowrap" }}>
+                          <span style={{ color: pred === "" ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.9)" }}>{pred === "" ? "–" : pred}</span>
+                          <span style={{ color: "rgba(255,255,255,0.25)" }}>/</span>
+                          <span style={{ color: act === "" ? "rgba(255,255,255,0.18)" : actWarn === true ? "#f87171" : "rgba(255,255,255,0.9)" }}>{act === "" ? "–" : act}</span>
+                        </span>
+                        <span style={{
+                          display: "block", fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 13, whiteSpace: "nowrap",
+                          color: runTotal === null ? "rgba(255,255,255,0.08)" : runTotal >= 0 ? PLAYER_COLORS[pi].accent : "#ef4444",
+                        }}>
+                          {runTotal === null ? "·" : <>{runTotal}{isCorrect
+                            ? <span style={{ fontSize: 9, color: "#34d399", marginLeft: 1 }}>✓</span>
+                            : <span style={{ fontSize: 8, color: "rgba(239,68,68,0.5)", marginLeft: 1 }}>✗</span>}</>}
+                        </span>
+                      </>
+                    );
+                    const box = {
+                      display: "block", width: "100%", minHeight: 44, padding: "4px 0", borderRadius: 8, textAlign: "center",
+                      fontFamily: "'DM Sans', sans-serif", color: "#fff",
+                    };
+                    return (
+                      <td key={pi} style={{
+                        padding: "3px 2px", borderBottom: "1px solid rgba(255,255,255,0.03)",
+                        background: pts !== null ? PLAYER_COLORS[pi].doneBg : "transparent", transition: "background 0.4s",
+                      }}>
+                        {editable ? (
+                          <button type="button" onClick={() => onCellClick(pi, ri, null)} aria-label={label} style={{
+                            ...box, cursor: "pointer", margin: 0,
+                            border: `1.5px solid ${actWarn === true ? "rgba(239,68,68,0.45)" : "rgba(255,255,255,0.12)"}`,
+                            background: "rgba(255,255,255,0.04)",
+                          }}>{content}</button>
+                        ) : (
+                          <div aria-label={label} style={{ ...box, border: "1.5px solid transparent" }}>{content}</div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+}

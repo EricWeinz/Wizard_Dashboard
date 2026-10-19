@@ -1,14 +1,22 @@
 {
+  "name": "wizard-dashboard",
+  "private": true,
+  "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test"
   },
   "dependencies": {
+    "firebase": "^12.19.0",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react-dom": "^18.0.0",
+    "react-qr-code": "^2.2.0",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "vite": "^5.0.0",
-    "@vitejs/plugin-react": "^4.0.0"
+    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "^5.0.0"
   }
 }
